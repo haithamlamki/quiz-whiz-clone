@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AnswerButton } from '@/components/AnswerButton';
 import { Timer } from '@/components/Timer';
+import { SoundEffects } from '@/components/SoundEffects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Users, Clock } from 'lucide-react';
@@ -47,6 +48,10 @@ export default function PlayGame() {
   const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState<'waiting' | 'question' | 'result' | 'finished'>('waiting');
   const [timeBonus, setTimeBonus] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [totalCorrect, setTotalCorrect] = useState(0);
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+  const [soundTrigger, setSoundTrigger] = useState<'correct' | 'incorrect' | 'timeup' | null>(null);
 
   const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === sampleQuiz.questions.length - 1;
@@ -55,9 +60,16 @@ export default function PlayGame() {
     // Simulate game start
     const timer = setTimeout(() => {
       setGameState('question');
+      setQuestionStartTime(Date.now());
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (gameState === 'question') {
+      setQuestionStartTime(Date.now());
+    }
+  }, [currentQuestionIndex, gameState]);
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (selectedAnswer !== null || showResult) return;
@@ -67,6 +79,7 @@ export default function PlayGame() {
   const handleTimeUp = () => {
     if (selectedAnswer === null) {
       setSelectedAnswer(-1); // No answer selected
+      setSoundTrigger('timeup');
     }
     showQuestionResult();
   };
@@ -75,10 +88,20 @@ export default function PlayGame() {
     setShowResult(true);
     setGameState('result');
     
-    // Calculate score
+    // Calculate score with speed bonus and streak multiplier
     if (selectedAnswer === currentQuestion.correctAnswer) {
-      const timeBasedScore = Math.max(100, currentQuestion.points - (timeBonus * 50));
-      setScore(prev => prev + timeBasedScore);
+      const responseTime = Date.now() - questionStartTime;
+      const speedBonus = Math.max(0, currentQuestion.timeLimit * 1000 - responseTime) / 100;
+      const streakMultiplier = 1 + (streak * 0.1);
+      const questionScore = Math.floor((currentQuestion.points + speedBonus) * streakMultiplier);
+      
+      setScore(prev => prev + questionScore);
+      setStreak(prev => prev + 1);
+      setTotalCorrect(prev => prev + 1);
+      setSoundTrigger('correct');
+    } else {
+      setStreak(0);
+      setSoundTrigger('incorrect');
     }
 
     // Auto advance after 3 seconds
@@ -115,6 +138,7 @@ export default function PlayGame() {
 
   return (
     <div className="min-h-screen bg-gradient-game">
+      <SoundEffects trigger={soundTrigger} onComplete={() => setSoundTrigger(null)} />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -129,6 +153,12 @@ export default function PlayGame() {
                 <Trophy className="h-4 w-4" />
                 <span>{score.toLocaleString()} points</span>
               </div>
+              {streak > 0 && (
+                <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-1 rounded-full">
+                  <span className="text-orange-300">🔥</span>
+                  <span>{streak} streak</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -190,7 +220,17 @@ export default function PlayGame() {
                   <div className="text-green-600">
                     <div className="text-4xl mb-2">🎉</div>
                     <h3 className="text-2xl font-bold mb-2">Correct!</h3>
-                    <p className="text-lg">+{currentQuestion.points} points</p>
+                    <div className="space-y-2">
+                      <p className="text-lg">+{currentQuestion.points} points</p>
+                      {streak > 1 && (
+                        <p className="text-orange-600 font-bold">
+                          🔥 {streak} Answer Streak! +{Math.floor(streak * 10)}% bonus
+                        </p>
+                      )}
+                      <div className="text-sm text-muted-foreground">
+                        Response time: {((Date.now() - questionStartTime) / 1000).toFixed(1)}s
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-red-600">
@@ -201,6 +241,11 @@ export default function PlayGame() {
                     <p className="text-lg">
                       Correct answer: {currentQuestion.answers[currentQuestion.correctAnswer]}
                     </p>
+                    {streak > 0 && (
+                      <p className="text-orange-600 text-sm mt-2">
+                        Streak broken! You had {streak} correct answers.
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>

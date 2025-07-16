@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Progress } from './ui/progress';
 import { cn } from '@/lib/utils';
+import { SoundEffects } from './SoundEffects';
 
 interface TimerProps {
   duration: number; // in seconds
@@ -16,6 +17,7 @@ export const Timer: React.FC<TimerProps> = ({
   className
 }) => {
   const [timeLeft, setTimeLeft] = useState(duration);
+  const [soundTrigger, setSoundTrigger] = useState<'countdown' | 'timeup' | null>(null);
 
   useEffect(() => {
     setTimeLeft(duration);
@@ -32,8 +34,12 @@ export const Timer: React.FC<TimerProps> = ({
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
+          setSoundTrigger('timeup');
           onComplete();
           return 0;
+        }
+        if (prev <= 5) {
+          setSoundTrigger('countdown');
         }
         return prev - 1;
       });
@@ -47,6 +53,10 @@ export const Timer: React.FC<TimerProps> = ({
 
   return (
     <div className={cn("space-y-2", className)}>
+      <SoundEffects 
+        trigger={soundTrigger} 
+        onComplete={() => setSoundTrigger(null)} 
+      />
       <div className="flex justify-between items-center">
         <span className="text-sm font-medium text-muted-foreground">Time Remaining</span>
         <span className={cn(

@@ -8,6 +8,9 @@ import CreateQuiz from "./pages/CreateQuiz";
 import JoinGame from "./pages/JoinGame";
 import PlayGame from "./pages/PlayGame";
 import GameResults from "./pages/GameResults";
+import GameLobby from "./pages/GameLobby";
+import HostDashboard from "./pages/HostDashboard";
+import FinalResults from "./pages/FinalResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,8 +25,11 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/create" element={<CreateQuiz />} />
           <Route path="/join/:pin" element={<JoinGame />} />
+          <Route path="/lobby/:pin/:playerName" element={<GameLobby />} />
+          <Route path="/host/:quizId" element={<HostDashboard />} />
           <Route path="/play/:pin/:playerName" element={<PlayGame />} />
           <Route path="/results/:pin/:playerName/:score" element={<GameResults />} />
+          <Route path="/final-results/:pin" element={<FinalResults />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

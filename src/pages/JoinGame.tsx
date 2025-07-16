@@ -16,9 +16,9 @@ export default function JoinGame() {
     if (!playerName.trim()) return;
     
     setIsJoining(true);
-    // Simulate joining game
+    // Simulate joining game and redirect to lobby
     setTimeout(() => {
-      navigate(`/play/${pin}/${encodeURIComponent(playerName)}`);
+      navigate(`/lobby/${pin}/${encodeURIComponent(playerName)}`);
     }, 1500);
   };
 
