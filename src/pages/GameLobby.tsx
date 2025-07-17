@@ -41,8 +41,13 @@ export default function GameLobby() {
 
   return (
     <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(/lovable-uploads/e85ee805-a420-4e9e-8381-91b677d3cb33.png)` }}
+      className="min-h-screen" 
+      style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
     >
 
       {/* Main Content */}

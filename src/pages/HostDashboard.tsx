@@ -223,7 +223,15 @@ export default function HostDashboard() {
 
   if (gameState === 'question') {
     return (
-      <div className="min-h-screen bg-gradient-game">
+      <div 
+        className="min-h-screen" 
+        style={{
+          backgroundImage: 'var(--gradient-classroom)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             {/* Host Controls */}
@@ -310,7 +318,15 @@ export default function HostDashboard() {
 
   if (gameState === 'results') {
     return (
-      <div className="min-h-screen bg-gradient-game">
+      <div 
+        className="min-h-screen" 
+        style={{
+          backgroundImage: 'var(--gradient-classroom)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             {/* Question Results */}

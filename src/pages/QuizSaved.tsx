@@ -81,7 +81,15 @@ export default function QuizSaved() {
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-game flex items-center justify-center">
+      <div 
+        className="min-h-screen flex items-center justify-center" 
+        style={{
+          backgroundImage: 'var(--gradient-classroom)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <Card className="bg-white/95 backdrop-blur-sm shadow-game">
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold mb-2">Quiz Not Found</h2>
@@ -95,7 +103,7 @@ export default function QuizSaved() {
 
   return (
     <div className="min-h-screen" style={getBackgroundStyle()}>
-      <div className="min-h-screen bg-gradient-game/90 backdrop-blur-sm">
+      <div className="min-h-screen bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-8">
           {/* Logo */}
           <div className="absolute top-4 left-4">

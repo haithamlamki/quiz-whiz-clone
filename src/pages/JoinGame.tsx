@@ -24,7 +24,15 @@ export default function JoinGame() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-game flex items-center justify-center">
+    <div 
+      className="min-h-screen flex items-center justify-center" 
+      style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <div className="container mx-auto px-4">
         <div className="max-w-md mx-auto">
           {/* Logo */}
