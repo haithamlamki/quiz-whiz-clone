@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { GameCard } from '@/components/GameCard';
+import Logo from '@/components/Logo';
 import { Play, Plus, Users, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -41,9 +42,14 @@ export default function Home() {
     navigate(`/host/${quizId}`);
   };
   return <div className="min-h-screen bg-gradient-game">
-      <div className="container mx-auto px-4 py-8 rounded-none bg-sky-600">
+      <div className="container mx-auto px-4 py-8 rounded-none bg-gradient-game">
+        {/* Logo */}
+        <div className="absolute top-4 left-4">
+          <Logo size="lg" />
+        </div>
+        
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 pt-8">
           <h1 className="text-6xl font-black text-white mb-4 animate-bounce-in">
             Abraj Quiz
           </h1>

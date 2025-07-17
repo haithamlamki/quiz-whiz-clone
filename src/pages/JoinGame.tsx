@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Logo from '@/components/Logo';
 import { Users, ArrowLeft, Gamepad2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -26,6 +27,11 @@ export default function JoinGame() {
     <div className="min-h-screen bg-gradient-game flex items-center justify-center">
       <div className="container mx-auto px-4">
         <div className="max-w-md mx-auto">
+          {/* Logo */}
+          <div className="absolute top-4 left-4">
+            <Logo size="md" />
+          </div>
+          
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-white mb-2">Join Game</h1>

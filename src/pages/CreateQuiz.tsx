@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import Logo from '@/components/Logo';
 import { Plus, Trash2, Save, ArrowLeft, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Question } from '@/types/quiz';
@@ -87,8 +88,13 @@ export default function CreateQuiz() {
     <div className="min-h-screen bg-gradient-game">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Logo */}
+          <div className="absolute top-4 left-4">
+            <Logo size="md" />
+          </div>
+          
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-8 pt-8">
             <Button variant="outline" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
               Back

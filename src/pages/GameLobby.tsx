@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Logo from '@/components/Logo';
 import { Users } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
@@ -48,8 +49,13 @@ export default function GameLobby() {
 
   return (
     <div className="min-h-screen" style={getBackgroundStyle()}>
+      {/* Logo */}
+      <div className="absolute top-4 left-4 z-10">
+        <Logo size="md" />
+      </div>
+      
       {/* Header */}
-      <header className="bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg">
+      <header className="bg-gradient-to-r from-primary to-primary/80 shadow-lg">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Leaderboard } from '@/components/Leaderboard';
+import Logo from '@/components/Logo';
 import { Trophy, Home, RotateCcw, Share2 } from 'lucide-react';
 
 // Sample leaderboard data
@@ -54,8 +55,13 @@ export default function GameResults() {
     <div className="min-h-screen bg-gradient-game">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Logo */}
+          <div className="absolute top-4 left-4">
+            <Logo size="md" />
+          </div>
+          
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 pt-8">
             <h1 className="text-4xl font-bold text-white mb-4">Game Complete!</h1>
             <div className="text-white/80">PIN: {pin}</div>
           </div>

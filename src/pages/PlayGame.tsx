@@ -5,6 +5,7 @@ import { Timer } from '@/components/Timer';
 import { SoundEffects } from '@/components/SoundEffects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import Logo from '@/components/Logo';
 import { Trophy, Users, Clock, X } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
@@ -165,6 +166,11 @@ export default function PlayGame() {
   return (
     <div className="min-h-screen" style={getBackgroundStyle()}>
       <SoundEffects trigger={soundTrigger} onComplete={() => setSoundTrigger(null)} />
+      
+      {/* Logo */}
+      <div className="absolute top-4 left-4 z-10">
+        <Logo size="md" />
+      </div>
       
       {/* Exit Button */}
       <div className="absolute top-4 right-4 z-10">

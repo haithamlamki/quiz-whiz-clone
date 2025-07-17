@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import Logo from '@/components/Logo';
 import { Users, Play, SkipForward, Trophy, Clock, Eye } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
@@ -101,15 +102,17 @@ export default function HostDashboard() {
   if (gameState === 'lobby') {
     return (
       <div className="min-h-screen" style={getBackgroundStyle()}>
+        {/* Logo */}
+        <div className="absolute top-4 left-4 z-10">
+          <Logo size="md" />
+        </div>
+        
         {/* Header */}
-        <header className="bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg">
+        <header className="bg-gradient-to-r from-primary to-primary/80 shadow-lg">
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
-              {/* Logo and Title */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-cyan-500 font-bold text-xl">A</span>
-                </div>
+              {/* Title */}
+              <div className="flex items-center gap-3 pl-20">
                 <h1 className="text-2xl font-bold text-white">Abraj Quiz</h1>
               </div>
               
