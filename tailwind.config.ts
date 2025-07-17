@@ -82,16 +82,26 @@ export default {
 					blue: 'hsl(var(--answer-blue))',
 					yellow: 'hsl(var(--answer-yellow))',
 					green: 'hsl(var(--answer-green))'
+				},
+				brand: {
+					purple: 'hsl(var(--brand-purple))',
+					red: 'hsl(var(--brand-red))',
+					blue: 'hsl(var(--brand-blue))',
+					green: 'hsl(var(--brand-green))',
+					yellow: 'hsl(var(--brand-yellow))'
 				}
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-game': 'var(--gradient-game)',
-				'gradient-celebration': 'var(--gradient-celebration)'
+				'gradient-celebration': 'var(--gradient-celebration)',
+				'gradient-rainbow': 'var(--gradient-rainbow)'
 			},
 			boxShadow: {
 				'game': 'var(--shadow-game)',
-				'answer': 'var(--shadow-answer)'
+				'answer': 'var(--shadow-answer)',
+				'purple': 'var(--shadow-purple)',
+				'colorful': 'var(--shadow-colorful)'
 			},
 			transitionTimingFunction: {
 				'bounce-in': 'var(--bounce-in)'
