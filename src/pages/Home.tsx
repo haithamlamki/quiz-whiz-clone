@@ -55,7 +55,7 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-6xl font-black text-white mb-4 animate-bounce-in">
-            KahootClone
+            Abraj Quiz
           </h1>
           <p className="text-xl text-white/90 mb-8">
             Create, play, and learn with interactive quizzes
