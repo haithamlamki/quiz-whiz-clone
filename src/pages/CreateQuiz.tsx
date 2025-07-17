@@ -98,21 +98,28 @@ export default function CreateQuiz() {
   const answerColors = ['red', 'blue', 'yellow', 'green'] as const;
 
   return (
-    <div className="min-h-screen bg-gradient-game">
+    <div 
+      className="min-h-screen" 
+      style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Logo */}
-          <div className="absolute top-4 left-4">
-            <Logo size="md" />
-          </div>
-          
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8 pt-8">
+          {/* Header with Logo and Title */}
+          <div className="flex items-center gap-4 mb-8 pt-4">
             <Button variant="outline" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <h1 className="text-4xl font-bold text-white">Create Quiz</h1>
+            <div className="flex items-center gap-3">
+              <Logo size="md" />
+              <span className="text-2xl font-bold text-white">Abraj Quiz</span>
+            </div>
+            <h1 className="text-4xl font-bold text-white ml-auto">Create Quiz</h1>
           </div>
 
           {/* Quiz Info */}

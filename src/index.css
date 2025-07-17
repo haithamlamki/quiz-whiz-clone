@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 15%;
 
-    --primary: 189 100% 27%;
+    --primary: 189 100% 25%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 189 100% 92%;
@@ -26,7 +26,7 @@ All colors MUST be HSL.
     --muted: 189 30% 95%;
     --muted-foreground: 189 15% 45%;
 
-    --accent: 189 100% 27%;
+    --accent: 189 100% 25%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -34,7 +34,7 @@ All colors MUST be HSL.
 
     --border: 0 0% 64%;
     --input: 0 0% 64%;
-    --ring: 197 100% 45%;
+    --ring: 189 100% 25%;
 
     /* Kahoot signature colors */
     --answer-red: 0 85% 60%;
@@ -42,13 +42,18 @@ All colors MUST be HSL.
     --answer-yellow: 48 95% 65%;
     --answer-green: 142 75% 55%;
     
+    /* Custom colors for website */
+    --button-primary: 189 100% 25%; /* #00778B */
+    --input-border: 0 0% 64%; /* #A4A4A4 */
+    
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(197 100% 45%), hsl(197 100% 55%));
-    --gradient-game: linear-gradient(180deg, hsl(197 100% 45%) 0%, hsl(197 100% 55%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(189 100% 25%), hsl(189 100% 35%));
+    --gradient-game: linear-gradient(180deg, hsl(189 100% 25%) 0%, hsl(189 100% 35%) 100%);
     --gradient-celebration: linear-gradient(45deg, hsl(48 95% 65%), hsl(142 75% 55%), hsl(210 85% 60%), hsl(0 85% 60%));
+    --gradient-classroom: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url('/lovable-uploads/53bfd07d-2165-4b16-a39a-22d7046951ff.png');
     
     /* Shadows */
-    --shadow-game: 0 10px 40px -10px hsl(197 100% 45% / 0.3);
+    --shadow-game: 0 10px 40px -10px hsl(189 100% 25% / 0.3);
     --shadow-answer: 0 4px 20px -4px hsl(var(--foreground) / 0.1);
     
     /* Animations */
