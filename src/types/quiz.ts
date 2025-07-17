@@ -14,6 +14,7 @@ export interface Quiz {
   questions: Question[];
   createdBy: string;
   createdAt: Date;
+  backgroundTheme?: string;
 }
 
 export interface Player {

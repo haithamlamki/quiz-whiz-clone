@@ -12,6 +12,7 @@ export default function CreateQuiz() {
   const navigate = useNavigate();
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDescription, setQuizDescription] = useState('');
+  const [backgroundTheme, setBackgroundTheme] = useState('bg-sky-600');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
     question: '',
@@ -55,7 +56,7 @@ export default function CreateQuiz() {
   const saveQuiz = () => {
     if (quizTitle && questions.length > 0) {
       // In a real app, this would save to a backend
-      console.log('Saving quiz:', { title: quizTitle, description: quizDescription, questions });
+      console.log('Saving quiz:', { title: quizTitle, description: quizDescription, questions, backgroundTheme });
       navigate('/');
     }
   };
@@ -98,6 +99,24 @@ export default function CreateQuiz() {
                   onChange={(e) => setQuizDescription(e.target.value)}
                   placeholder="Enter quiz description"
                 />
+              </div>
+              <div>
+                <Label htmlFor="background">Background Theme</Label>
+                <select
+                  id="background"
+                  value={backgroundTheme}
+                  onChange={(e) => setBackgroundTheme(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="bg-sky-600">Sky Blue</option>
+                  <option value="bg-purple-600">Purple</option>
+                  <option value="bg-green-600">Green</option>
+                  <option value="bg-orange-600">Orange</option>
+                  <option value="bg-red-600">Red</option>
+                  <option value="bg-indigo-600">Indigo</option>
+                  <option value="bg-pink-600">Pink</option>
+                  <option value="bg-teal-600">Teal</option>
+                </select>
               </div>
             </CardContent>
           </Card>
