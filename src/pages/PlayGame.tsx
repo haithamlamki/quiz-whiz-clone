@@ -6,6 +6,7 @@ import { SoundEffects } from '@/components/SoundEffects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Users, Clock, X } from 'lucide-react';
+import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
 // Sample quiz data
 const sampleQuiz = {
@@ -42,6 +43,7 @@ const sampleQuiz = {
 export default function PlayGame() {
   const { pin, playerName } = useParams();
   const navigate = useNavigate();
+  const { getBackgroundStyle, resetBackground } = useQuizBackground();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -52,6 +54,11 @@ export default function PlayGame() {
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [soundTrigger, setSoundTrigger] = useState<'correct' | 'incorrect' | 'timeup' | null>(null);
+
+  // Reset background when leaving this page
+  useEffect(() => {
+    return () => resetBackground();
+  }, [resetBackground]);
 
   const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === sampleQuiz.questions.length - 1;
@@ -123,15 +130,17 @@ export default function PlayGame() {
 
   if (gameState === 'waiting') {
     return (
-      <div className="min-h-screen bg-gradient-game flex items-center justify-center">
-        <Card className="bg-white/95 backdrop-blur-sm shadow-game">
-          <CardContent className="p-8 text-center">
-            <div className="animate-pulse text-4xl mb-4">🎮</div>
-            <h2 className="text-2xl font-bold mb-2">Get Ready!</h2>
-            <p className="text-muted-foreground mb-4">The game is about to start...</p>
-            <div className="text-lg font-semibold">Welcome, {decodeURIComponent(playerName || '')}!</div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen" style={getBackgroundStyle()}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+            <CardContent className="p-8 text-center">
+              <div className="animate-pulse text-4xl mb-4">🎮</div>
+              <h2 className="text-2xl font-bold mb-2">Get Ready!</h2>
+              <p className="text-muted-foreground mb-4">The game is about to start...</p>
+              <div className="text-lg font-semibold">Welcome, {decodeURIComponent(playerName || '')}!</div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -139,20 +148,22 @@ export default function PlayGame() {
   // Safety check - if no current question, show error state
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-game flex items-center justify-center">
-        <Card className="bg-white/95 backdrop-blur-sm shadow-game">
-          <CardContent className="p-8 text-center">
-            <div className="text-4xl mb-4">❌</div>
-            <h2 className="text-2xl font-bold mb-2">Game Error</h2>
-            <p className="text-muted-foreground mb-4">Question not found</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen" style={getBackgroundStyle()}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+            <CardContent className="p-8 text-center">
+              <div className="text-4xl mb-4">❌</div>
+              <h2 className="text-2xl font-bold mb-2">Game Error</h2>
+              <p className="text-muted-foreground mb-4">Question not found</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-game">
+    <div className="min-h-screen" style={getBackgroundStyle()}>
       <SoundEffects trigger={soundTrigger} onComplete={() => setSoundTrigger(null)} />
       
       {/* Exit Button */}

@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { QuizBackgroundProvider } from "@/contexts/QuizBackgroundContext";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,24 +18,26 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/create" element={<CreateQuiz />} />
-          <Route path="/join/:pin" element={<JoinGame />} />
-          <Route path="/lobby/:pin/:playerName" element={<GameLobby />} />
-          <Route path="/host/:quizId" element={<HostDashboard />} />
-          <Route path="/play/:pin/:playerName" element={<PlayGame />} />
-          <Route path="/results/:pin/:playerName/:score" element={<GameResults />} />
-          <Route path="/final-results/:pin" element={<FinalResults />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <QuizBackgroundProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/create" element={<CreateQuiz />} />
+            <Route path="/join/:pin" element={<JoinGame />} />
+            <Route path="/lobby/:pin/:playerName" element={<GameLobby />} />
+            <Route path="/host/:quizId" element={<HostDashboard />} />
+            <Route path="/play/:pin/:playerName" element={<PlayGame />} />
+            <Route path="/results/:pin/:playerName/:score" element={<GameResults />} />
+            <Route path="/final-results/:pin" element={<FinalResults />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QuizBackgroundProvider>
   </QueryClientProvider>
 );
 

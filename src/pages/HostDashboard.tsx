@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Users, Play, SkipForward, Trophy, Clock, Eye } from 'lucide-react';
+import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
 // Sample quiz data
 const sampleQuiz = {
@@ -48,10 +49,16 @@ const samplePlayers = [
 export default function HostDashboard() {
   const { pin } = useParams();
   const navigate = useNavigate();
+  const { getBackgroundStyle, resetBackground } = useQuizBackground();
   const [gameState, setGameState] = useState<'lobby' | 'question' | 'results' | 'leaderboard'>('lobby');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   const [players, setPlayers] = useState(samplePlayers);
+
+  // Reset background when leaving this page
+  useEffect(() => {
+    return () => resetBackground();
+  }, [resetBackground]);
 
   const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
   const answeredCount = players.filter(p => p.answered).length;
@@ -93,11 +100,7 @@ export default function HostDashboard() {
 
   if (gameState === 'lobby') {
     return (
-      <div className="min-h-screen" style={{
-        backgroundImage: 'linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 800\'%3E%3Cdefs%3E%3ClinearGradient id=\'classroom\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' style=\'stop-color:%23a8d5ba;stop-opacity:1\' /%3E%3Cstop offset=\'50%25\' style=\'stop-color:%2398c7a8;stop-opacity:1\' /%3E%3Cstop offset=\'100%25\' style=\'stop-color:%2385c7a1;stop-opacity:1\' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'url(%23classroom)\'/%3E%3C/svg%3E")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}>
+      <div className="min-h-screen" style={getBackgroundStyle()}>
         {/* Header */}
         <header className="bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg">
           <div className="container mx-auto px-6 py-4">
