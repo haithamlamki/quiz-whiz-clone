@@ -56,11 +56,6 @@ export default function PlayGame() {
   const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === sampleQuiz.questions.length - 1;
 
-  // Safety check - if no current question, don't render
-  if (!currentQuestion) {
-    return null;
-  }
-
   useEffect(() => {
     // Simulate game start
     const timer = setTimeout(() => {
@@ -135,6 +130,21 @@ export default function PlayGame() {
             <h2 className="text-2xl font-bold mb-2">Get Ready!</h2>
             <p className="text-muted-foreground mb-4">The game is about to start...</p>
             <div className="text-lg font-semibold">Welcome, {decodeURIComponent(playerName || '')}!</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Safety check - if no current question, show error state
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gradient-game flex items-center justify-center">
+        <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+          <CardContent className="p-8 text-center">
+            <div className="text-4xl mb-4">❌</div>
+            <h2 className="text-2xl font-bold mb-2">Game Error</h2>
+            <p className="text-muted-foreground mb-4">Question not found</p>
           </CardContent>
         </Card>
       </div>
