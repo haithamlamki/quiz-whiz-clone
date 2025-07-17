@@ -117,7 +117,34 @@ export default function CreateQuiz() {
         createdAt: new Date().toISOString()
       };
       
-      localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
+      // Try to save to localStorage with error handling for quota exceeded
+      const quizDataString = JSON.stringify(quizData);
+      
+      try {
+        localStorage.setItem(`quiz_${quizId}`, quizDataString);
+      } catch (storageError: any) {
+        if (storageError.name === 'QuotaExceededError') {
+          // If storage quota exceeded, try to clear some old quiz data
+          const keys = Object.keys(localStorage).filter(key => key.startsWith('quiz_'));
+          if (keys.length > 5) {
+            // Remove oldest quizzes to make space
+            keys.slice(0, Math.floor(keys.length / 2)).forEach(key => {
+              localStorage.removeItem(key);
+            });
+            
+            // Try saving again
+            try {
+              localStorage.setItem(`quiz_${quizId}`, quizDataString);
+            } catch (secondAttemptError) {
+              throw new Error('Storage quota exceeded. Please try creating a quiz with fewer or smaller questions.');
+            }
+          } else {
+            throw new Error('Storage quota exceeded. Please try creating a quiz with fewer or smaller questions.');
+          }
+        } else {
+          throw storageError;
+        }
+      }
       
       toast({
         title: "Quiz Saved Successfully!",
@@ -125,10 +152,11 @@ export default function CreateQuiz() {
       });
       
       navigate(`/quiz-saved/${quizId}`);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Save error:', error);
       toast({
         title: "Save Failed",
-        description: "There was an error saving your quiz. Please try again.",
+        description: error.message || "There was an error saving your quiz. Please try again.",
         variant: "destructive",
       });
     }
