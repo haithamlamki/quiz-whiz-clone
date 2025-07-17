@@ -12,9 +12,11 @@ import { QuestionsList } from '@/components/QuestionsList';
 import { ArrowLeft, Save, Upload, Eye, Settings, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Question } from '@/types/quiz';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CreateQuiz() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDescription, setQuizDescription] = useState('');
   const [backgroundTheme, setBackgroundTheme] = useState('bg-sky-600');
@@ -47,14 +49,67 @@ export default function CreateQuiz() {
   };
 
   const saveQuiz = () => {
-    if (quizTitle && questions.length > 0) {
+    // Validation with specific error messages
+    if (!quizTitle.trim()) {
+      toast({
+        title: "Quiz Title Required",
+        description: "Please enter a title for your quiz before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (questions.length === 0) {
+      toast({
+        title: "No Questions Added",
+        description: "Please add at least one question to your quiz before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate each question has required fields
+    const invalidQuestions = questions.filter(q => {
+      if (!q.question.trim()) return true;
+      
+      switch (q.type) {
+        case 'multiple-choice':
+          const mcq = q as any;
+          return !mcq.answers || mcq.answers.length < 2 || typeof mcq.correctAnswer !== 'number';
+        case 'true-false':
+          const tfq = q as any;
+          return typeof tfq.correctAnswer !== 'boolean';
+        case 'puzzle':
+          const pq = q as any;
+          return !pq.items || pq.items.length < 2;
+        case 'poll':
+          const pollq = q as any;
+          return !pollq.options || pollq.options.length < 2;
+        case 'hotspot':
+          const hq = q as any;
+          return !hq.imageUrl || !hq.hotspots || hq.hotspots.length === 0;
+        default:
+          return false;
+      }
+    });
+
+    if (invalidQuestions.length > 0) {
+      toast({
+        title: "Incomplete Questions",
+        description: `${invalidQuestions.length} question(s) are missing required information. Please complete all questions before saving.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
       const quizId = Math.random().toString(36).substr(2, 9);
       const pin = Math.floor(100000 + Math.random() * 900000).toString();
       
       const quizData = {
         id: quizId,
-        title: quizTitle,
-        description: quizDescription,
+        title: quizTitle.trim(),
+        description: quizDescription.trim(),
         questions: questions.sort((a, b) => a.order - b.order),
         backgroundTheme: customBackground ? 'custom' : backgroundTheme,
         customBackground,
@@ -63,7 +118,19 @@ export default function CreateQuiz() {
       };
       
       localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
+      
+      toast({
+        title: "Quiz Saved Successfully!",
+        description: `Your quiz "${quizTitle}" has been saved and published.`,
+      });
+      
       navigate(`/quiz-saved/${quizId}`);
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "There was an error saving your quiz. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
