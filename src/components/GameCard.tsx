@@ -23,19 +23,19 @@ export const GameCard: React.FC<GameCardProps> = ({
   return (
     <Card className="group hover:shadow-game transition-all duration-300 hover:-translate-y-1 bg-card/50 backdrop-blur-sm border-border/50">
       <CardHeader>
-        <CardTitle className="text-lg font-bold text-3d">{title}</CardTitle>
-        <CardDescription className="text-muted-foreground text-3d">
+        <CardTitle className="text-xl font-bold text-3d">{title}</CardTitle>
+        <CardDescription className="text-muted-foreground text-3d text-base">
           {description}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground text-3d">
+        <div className="flex items-center gap-4 text-base text-muted-foreground text-3d">
           <div className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
+            <Users className="h-5 w-5" />
             <span>{playerCount} players</span>
           </div>
           <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-5 w-5" />
             <span>{duration}</span>
           </div>
         </div>

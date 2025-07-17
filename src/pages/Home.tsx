@@ -52,16 +52,16 @@ export default function Home() {
     >
       <div className="container mx-auto px-4 py-8">
         {/* Header with Logo and Title */}
-        <div className="flex items-center justify-end gap-4 mb-12 pt-4">
+        <div className="flex items-center justify-start gap-4 mb-12 pt-4">
           <div className="flex items-center gap-3">
             <Logo size="lg" />
-            <span className="text-4xl font-bold text-white text-3d-white">Abraj Quiz</span>
+            <span className="text-5xl font-bold text-white text-3d-white">Abraj Quiz</span>
           </div>
         </div>
         
         {/* Subtitle */}
         <div className="text-center mb-12">
-          <p className="text-xl text-white/90 mb-8 text-3d-white">
+          <p className="text-2xl text-white/90 mb-8 text-3d-white font-semibold">
             Create, play, and learn with interactive quizzes
           </p>
         </div>
@@ -71,11 +71,11 @@ export default function Home() {
           {/* Join Game Card */}
           <Card className="bg-white/95 backdrop-blur-sm shadow-game border-0">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2 text-3d">
-                <Play className="h-6 w-6 text-primary" />
+              <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2 text-3d">
+                <Play className="h-7 w-7 text-primary" />
                 Join Game
               </CardTitle>
-              <CardDescription className="text-3d">
+              <CardDescription className="text-3d text-lg">
                 Enter a game PIN to join an existing quiz
               </CardDescription>
             </CardHeader>
@@ -91,11 +91,11 @@ export default function Home() {
           {/* Create Quiz Card */}
           <Card className="bg-white/95 backdrop-blur-sm shadow-game border-0">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2 text-3d">
-                <Plus className="h-6 w-6 text-primary" />
+              <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2 text-3d">
+                <Plus className="h-7 w-7 text-primary" />
                 Create Quiz
               </CardTitle>
-              <CardDescription className="text-3d">
+              <CardDescription className="text-3d text-lg">
                 Design your own interactive quiz
               </CardDescription>
             </CardHeader>
@@ -110,7 +110,7 @@ export default function Home() {
 
         {/* Featured Quizzes */}
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-8 text-3d-white">
+          <h2 className="text-4xl font-bold text-white text-center mb-8 text-3d-white">
             Featured Quizzes
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
