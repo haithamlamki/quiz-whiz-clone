@@ -5,7 +5,7 @@ import { Timer } from '@/components/Timer';
 import { SoundEffects } from '@/components/SoundEffects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Users, Clock } from 'lucide-react';
+import { Trophy, Users, Clock, X } from 'lucide-react';
 
 // Sample quiz data
 const sampleQuiz = {
@@ -154,6 +154,19 @@ export default function PlayGame() {
   return (
     <div className="min-h-screen bg-gradient-game">
       <SoundEffects trigger={soundTrigger} onComplete={() => setSoundTrigger(null)} />
+      
+      {/* Exit Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="text-white hover:bg-white/20"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
