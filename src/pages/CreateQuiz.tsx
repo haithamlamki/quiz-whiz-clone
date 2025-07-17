@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Question } from '@/types/quiz';
 
@@ -13,6 +13,7 @@ export default function CreateQuiz() {
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDescription, setQuizDescription] = useState('');
   const [backgroundTheme, setBackgroundTheme] = useState('bg-sky-600');
+  const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
     question: '',
@@ -56,8 +57,27 @@ export default function CreateQuiz() {
   const saveQuiz = () => {
     if (quizTitle && questions.length > 0) {
       // In a real app, this would save to a backend
-      console.log('Saving quiz:', { title: quizTitle, description: quizDescription, questions, backgroundTheme });
+      console.log('Saving quiz:', { 
+        title: quizTitle, 
+        description: quizDescription, 
+        questions, 
+        backgroundTheme: customBackground ? 'custom' : backgroundTheme,
+        customBackground 
+      });
       navigate('/');
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setCustomBackground(result);
+        setBackgroundTheme('custom');
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -102,21 +122,65 @@ export default function CreateQuiz() {
               </div>
               <div>
                 <Label htmlFor="background">Background Theme</Label>
-                <select
-                  id="background"
-                  value={backgroundTheme}
-                  onChange={(e) => setBackgroundTheme(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="bg-sky-600">Sky Blue</option>
-                  <option value="bg-purple-600">Purple</option>
-                  <option value="bg-green-600">Green</option>
-                  <option value="bg-orange-600">Orange</option>
-                  <option value="bg-red-600">Red</option>
-                  <option value="bg-indigo-600">Indigo</option>
-                  <option value="bg-pink-600">Pink</option>
-                  <option value="bg-teal-600">Teal</option>
-                </select>
+                <div className="space-y-4">
+                  <select
+                    id="background"
+                    value={customBackground ? 'custom' : backgroundTheme}
+                    onChange={(e) => {
+                      if (e.target.value !== 'custom') {
+                        setBackgroundTheme(e.target.value);
+                        setCustomBackground(null);
+                      }
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="bg-sky-600">Sky Blue</option>
+                    <option value="bg-purple-600">Purple</option>
+                    <option value="bg-green-600">Green</option>
+                    <option value="bg-orange-600">Orange</option>
+                    <option value="bg-red-600">Red</option>
+                    <option value="bg-indigo-600">Indigo</option>
+                    <option value="bg-pink-600">Pink</option>
+                    <option value="bg-teal-600">Teal</option>
+                    {customBackground && <option value="custom">Custom Image</option>}
+                  </select>
+
+                  {/* Custom Image Upload */}
+                  <div className="space-y-2">
+                    <Label htmlFor="background-image">Or Upload Custom Background</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="background-image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                      />
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    {customBackground && (
+                      <div className="mt-2">
+                        <img 
+                          src={customBackground} 
+                          alt="Custom background preview" 
+                          className="w-full h-24 object-cover rounded-md border"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => {
+                            setCustomBackground(null);
+                            setBackgroundTheme('bg-sky-600');
+                          }}
+                        >
+                          Remove Custom Background
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
