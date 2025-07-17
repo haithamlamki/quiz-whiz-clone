@@ -57,15 +57,28 @@ export default function CreateQuiz() {
 
   const saveQuiz = () => {
     if (quizTitle && questions.length > 0) {
-      // In a real app, this would save to a backend
-      console.log('Saving quiz:', { 
-        title: quizTitle, 
-        description: quizDescription, 
-        questions, 
+      // Generate unique quiz ID and PIN
+      const quizId = Math.random().toString(36).substr(2, 9);
+      const pin = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit PIN
+      
+      const quizData = {
+        id: quizId,
+        title: quizTitle,
+        description: quizDescription,
+        questions,
         backgroundTheme: customBackground ? 'custom' : backgroundTheme,
-        customBackground 
-      });
-      navigate('/');
+        customBackground,
+        pin,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage (in real app, would save to backend)
+      localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
+      
+      console.log('Quiz saved:', quizData);
+      
+      // Navigate to success page with PIN and QR code
+      navigate(`/quiz-saved/${quizId}`);
     }
   };
 

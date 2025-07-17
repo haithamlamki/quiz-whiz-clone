@@ -48,20 +48,38 @@ const samplePlayers = [
 ];
 
 export default function HostDashboard() {
-  const { pin } = useParams();
+  const { quizId } = useParams();
+  const pin = '123456'; // This would come from the quiz data
   const navigate = useNavigate();
-  const { getBackgroundStyle, resetBackground } = useQuizBackground();
+  const { getBackgroundStyle, resetBackground, setQuizBackground } = useQuizBackground();
   const [gameState, setGameState] = useState<'lobby' | 'question' | 'results' | 'leaderboard'>('lobby');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   const [players, setPlayers] = useState(samplePlayers);
+  const [quiz, setQuiz] = useState<any>(null);
+
+  // Load quiz data and set background
+  useEffect(() => {
+    if (quizId) {
+      const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+      if (savedQuizData) {
+        const quizData = JSON.parse(savedQuizData);
+        setQuiz(quizData);
+        
+        // Set background based on quiz data
+        if (quizData.customBackground) {
+          setQuizBackground('custom', quizData.customBackground);
+        }
+      }
+    }
+  }, [quizId, setQuizBackground]);
 
   // Reset background when leaving this page
   useEffect(() => {
     return () => resetBackground();
   }, [resetBackground]);
 
-  const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
+  const currentQuestion = quiz?.questions?.[currentQuestionIndex] || sampleQuiz.questions[currentQuestionIndex];
   const answeredCount = players.filter(p => p.answered).length;
   const answerProgress = (answeredCount / players.length) * 100;
 
@@ -78,14 +96,16 @@ export default function HostDashboard() {
   };
 
   const nextQuestion = () => {
-    if (currentQuestionIndex < sampleQuiz.questions.length - 1) {
+    const totalQuestions = quiz?.questions?.length || sampleQuiz.questions.length;
+    if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setGameState('question');
-      setTimeLeft(sampleQuiz.questions[currentQuestionIndex + 1].timeLimit);
+      const nextQ = quiz?.questions?.[currentQuestionIndex + 1] || sampleQuiz.questions[currentQuestionIndex + 1];
+      setTimeLeft(nextQ.timeLimit);
       // Reset answered status
       setPlayers(prev => prev.map(p => ({ ...p, answered: false })));
     } else {
-      navigate(`/final-results/${pin}`);
+      navigate(`/final-results/${quiz?.pin || pin}`);
     }
   };
 
@@ -113,7 +133,13 @@ export default function HostDashboard() {
             <div className="flex justify-between items-center">
               {/* Title */}
               <div className="flex items-center gap-3 pl-20">
-                <h1 className="text-2xl font-bold text-white">Abraj Quiz</h1>
+                <h1 className="text-2xl font-bold text-white">{quiz?.title || 'Abraj Quiz'}</h1>
+              </div>
+              
+              {/* Game PIN */}
+              <div className="text-center">
+                <p className="text-white/80 text-sm">Game PIN</p>
+                <p className="text-3xl font-bold text-white">{quiz?.pin || pin}</p>
               </div>
               
               {/* Action Buttons */}
@@ -152,14 +178,14 @@ export default function HostDashboard() {
             </div>
 
             {/* Game PIN */}
-            <div className="bg-cyan-500 text-white px-8 py-4 rounded-lg text-4xl font-bold mb-4 inline-block shadow-lg">
-              {pin}
+            <div className="bg-primary text-white px-8 py-4 rounded-lg text-4xl font-bold mb-4 inline-block shadow-lg">
+              {quiz?.pin || pin}
             </div>
 
             {/* Copy Join Link Button */}
             <button 
-              onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/join/${pin}`)}
-              className="bg-cyan-500 text-white px-6 py-3 rounded-lg hover:bg-cyan-600 font-semibold transition-colors block mx-auto mb-8"
+              onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/join/${quiz?.pin || pin}`)}
+              className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/80 font-semibold transition-colors block mx-auto mb-8"
             >
               Copy Join Link
             </button>
@@ -210,7 +236,7 @@ export default function HostDashboard() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <span className="text-lg font-bold">
-                      Question {currentQuestionIndex + 1} of {sampleQuiz.questions.length}
+                      Question {currentQuestionIndex + 1} of {quiz?.questions?.length || sampleQuiz.questions.length}
                     </span>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
