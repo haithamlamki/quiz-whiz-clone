@@ -122,17 +122,13 @@ export default function HostDashboard() {
   if (gameState === 'lobby') {
     return (
       <div className="min-h-screen" style={getBackgroundStyle()}>
-        {/* Logo */}
-        <div className="absolute top-4 left-4 z-10">
-          <Logo size="md" />
-        </div>
-        
         {/* Header */}
         <header className="bg-gradient-to-r from-primary to-primary/80 shadow-lg">
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
               {/* Title */}
-              <div className="flex items-center gap-3 pl-20">
+              <div className="flex items-center gap-3">
+                <Logo size="md" />
                 <h1 className="text-2xl font-bold text-white">{quiz?.title || 'Abraj Quiz'}</h1>
               </div>
               
@@ -175,11 +171,11 @@ export default function HostDashboard() {
                 </div>
               </div>
               <p className="text-cyan-500 font-semibold">Scan QR to join</p>
-            </div>
-
-            {/* Game PIN */}
-            <div className="bg-primary text-white px-8 py-4 rounded-lg text-4xl font-bold mb-4 inline-block shadow-lg">
-              {quiz?.pin || pin}
+              
+              {/* Game PIN - moved under QR code */}
+              <div className="bg-primary text-white px-8 py-4 rounded-lg text-4xl font-bold mt-4 inline-block shadow-lg">
+                {quiz?.pin || pin}
+              </div>
             </div>
 
             {/* Copy Join Link Button */}
