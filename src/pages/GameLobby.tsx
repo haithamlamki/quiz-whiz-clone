@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Logo from '@/components/Logo';
 import { Users } from 'lucide-react';
-import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
 export default function GameLobby() {
   const { pin, playerName: urlPlayerName } = useParams();
   const navigate = useNavigate();
-  const { getBackgroundStyle, resetBackground } = useQuizBackground();
   const playerName = decodeURIComponent(urlPlayerName || '');
   const [isJoined, setIsJoined] = useState(true);
   const [players, setPlayers] = useState<string[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
-
-  // Reset background when leaving this page
-  useEffect(() => {
-    return () => resetBackground();
-  }, [resetBackground]);
 
   // Simulate other players joining
   useEffect(() => {
@@ -48,23 +40,10 @@ export default function GameLobby() {
 
 
   return (
-    <div className="min-h-screen" style={getBackgroundStyle()}>
-      {/* Logo */}
-      <div className="absolute top-4 left-4 z-10">
-        <Logo size="md" />
-      </div>
-      
-      {/* Header */}
-      <header className="bg-gradient-to-r from-primary to-primary/80 shadow-lg">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-cyan-500 font-bold text-xl">A</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white">Abraj Quiz</h1>
-          </div>
-        </div>
-      </header>
+    <div 
+      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(/lovable-uploads/e85ee805-a420-4e9e-8381-91b677d3cb33.png)` }}
+    >
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
@@ -93,7 +72,7 @@ export default function GameLobby() {
         </div>
 
         {/* Player Name Display */}
-        <div className="fixed bottom-4 left-4 bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold">
+        <div className="fixed bottom-4 left-4 bg-primary text-white px-4 py-2 rounded-lg font-semibold">
           {playerName}
         </div>
 
