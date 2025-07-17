@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 15%;
 
-    --primary: 189 100% 42%;
+    --primary: 189 100% 27%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 189 100% 92%;
@@ -26,14 +26,14 @@ All colors MUST be HSL.
     --muted: 189 30% 95%;
     --muted-foreground: 189 15% 45%;
 
-    --accent: 189 100% 42%;
+    --accent: 189 100% 27%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
+    --border: 0 0% 64%;
+    --input: 0 0% 64%;
     --ring: 197 100% 45%;
 
     /* Kahoot signature colors */
