@@ -21,7 +21,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   onEdit
 }) => {
   return (
-    <Card className="group hover:shadow-game transition-all duration-300 hover:-translate-y-1 bg-card/50 backdrop-blur-sm border-border/50">
+    <Card className="group card-interactive hover:shadow-card-hover bg-gradient-card backdrop-blur-sm border-border/30 animate-slide-up">
       <CardHeader>
         <CardTitle className="text-lg font-bold">{title}</CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -40,12 +40,12 @@ export const GameCard: React.FC<GameCardProps> = ({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="game" size="sm" className="flex-1" onClick={onPlay}>
-            <Trophy className="h-4 w-4" />
-            Play
+          <Button variant="cta" size="cta" className="flex-1" onClick={onPlay}>
+            <Trophy className="h-5 w-5" />
+            Play Now
           </Button>
           {onEdit && (
-            <Button variant="outline" size="sm" onClick={onEdit}>
+            <Button variant="cta-outline" size="default" onClick={onEdit}>
               Edit
             </Button>
           )}

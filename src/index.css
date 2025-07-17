@@ -42,19 +42,42 @@ All colors MUST be HSL.
     --answer-yellow: 48 95% 65%;
     --answer-green: 142 75% 55%;
     
+    /* Brand Colors - Modern palette */
+    --brand-purple: 280 100% 65%;
+    --brand-pink: 330 85% 70%;
+    --brand-cyan: 185 95% 60%;
+    --brand-lime: 85 95% 65%;
+    --brand-orange: 25 95% 65%;
+    
+    /* CTA & Button colors */
+    --cta-primary: 280 100% 65%;
+    --cta-primary-hover: 280 100% 55%;
+    --cta-secondary: 185 95% 60%;
+    --cta-secondary-hover: 185 95% 50%;
+    --cta-success: 142 75% 55%;
+    --cta-warning: 48 95% 65%;
+    --cta-danger: 0 85% 60%;
+    
     /* Custom colors for website */
     --button-primary: 189 100% 25%; /* #00778B */
     --input-border: 0 0% 64%; /* #A4A4A4 */
     
-    /* Gradients */
+    /* Enhanced Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(189 100% 25%), hsl(189 100% 35%));
+    --gradient-cta: linear-gradient(135deg, hsl(280 100% 65%), hsl(330 85% 70%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.9), hsl(0 0% 100% / 0.6));
     --gradient-game: linear-gradient(180deg, hsl(189 100% 25%) 0%, hsl(189 100% 35%) 100%);
     --gradient-celebration: linear-gradient(45deg, hsl(48 95% 65%), hsl(142 75% 55%), hsl(210 85% 60%), hsl(0 85% 60%));
     --gradient-classroom: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('/src/assets/classroom-bg-hq.jpg');
+    --gradient-hover: linear-gradient(135deg, hsl(280 100% 55%), hsl(330 85% 60%));
     
-    /* Shadows */
+    /* Enhanced Shadows */
+    --shadow-cta: 0 10px 40px -12px hsl(280 100% 65% / 0.4);
+    --shadow-card: 0 10px 30px -10px hsl(240 10% 15% / 0.1);
+    --shadow-card-hover: 0 20px 50px -15px hsl(240 10% 15% / 0.15);
     --shadow-game: 0 10px 40px -10px hsl(189 100% 25% / 0.3);
     --shadow-answer: 0 4px 20px -4px hsl(var(--foreground) / 0.1);
+    --shadow-interactive: 0 5px 25px -8px hsl(280 100% 65% / 0.3);
     
     /* Animations */
     --transition-game: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -143,6 +166,32 @@ All colors MUST be HSL.
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Interactive Elements */
+  .card-interactive {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  .card-interactive:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .btn-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
   }
 
   /* Responsive Typography handled in Tailwind config */
