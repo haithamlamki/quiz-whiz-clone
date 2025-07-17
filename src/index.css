@@ -131,43 +131,6 @@ All colors MUST be HSL.
   }
 
   /* Typography Classes */
-  .text-hero {
-    @apply text-hero font-extrabold tracking-tight;
-  }
-
-  .text-display {
-    @apply text-display font-bold tracking-tight;
-  }
-
-  .text-title {
-    @apply text-title font-semibold tracking-tight;
-  }
-
-  .text-heading {
-    @apply text-heading font-semibold;
-  }
-
-  .text-subheading {
-    @apply text-subheading font-medium;
-  }
-
-  .text-body-lg {
-    @apply text-body-lg font-normal;
-  }
-
-  .text-body {
-    @apply text-body font-normal;
-  }
-
-  .text-body-sm {
-    @apply text-body-sm font-normal;
-  }
-
-  .text-caption {
-    @apply text-caption font-medium uppercase tracking-wide;
-  }
-
-  /* 3D Text Effect */
   .text-3d {
     text-shadow: 
       2px 2px 0px rgba(0, 0, 0, 0.2),
@@ -175,18 +138,12 @@ All colors MUST be HSL.
       6px 6px 0px rgba(0, 0, 0, 0.05);
   }
 
-  /* Responsive Typography */
-  @media (max-width: 768px) {
-    .text-hero {
-      @apply text-5xl;
-    }
-    
-    .text-display {
-      @apply text-3xl;
-    }
-    
-    .text-title {
-      @apply text-2xl;
-    }
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(189 100% 25%), hsl(189 100% 45%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
+
+  /* Responsive Typography handled in Tailwind config */
 }

@@ -59,10 +59,10 @@ export default function Home() {
         <div className="container mx-auto px-4 py-12">
           {/* Hero Section */}
           <div className="text-center mb-16 pt-8">
-            <h1 className="text-hero text-white text-3d mb-6">
+            <h1 className="text-hero font-extrabold tracking-tight text-white text-3d mb-6">
               Welcome to Abraj Quiz
             </h1>
-            <p className="text-body-lg text-white/90 mb-8 max-w-2xl mx-auto">
+            <p className="text-body-lg font-normal text-white/90 mb-8 max-w-2xl mx-auto">
               Create, play, and learn with interactive quizzes that make learning fun and engaging
             </p>
           </div>
@@ -72,7 +72,7 @@ export default function Home() {
             {/* Join Game Card */}
             <Card className="bg-white/95 backdrop-blur-sm shadow-game border-0">
               <CardHeader className="text-center">
-                <CardTitle className="text-title flex items-center justify-center gap-2">
+                <CardTitle className="text-title font-semibold tracking-tight flex items-center justify-center gap-2">
                   <Play className="h-6 w-6 text-primary" />
                   Join Game
                 </CardTitle>
@@ -92,7 +92,7 @@ export default function Home() {
             {/* Create Quiz Card */}
             <Card className="bg-white/95 backdrop-blur-sm shadow-game border-0">
               <CardHeader className="text-center">
-                <CardTitle className="text-title flex items-center justify-center gap-2">
+                <CardTitle className="text-title font-semibold tracking-tight flex items-center justify-center gap-2">
                   <Plus className="h-6 w-6 text-primary" />
                   Create Quiz
                 </CardTitle>
@@ -111,7 +111,7 @@ export default function Home() {
 
           {/* Featured Quizzes */}
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-display text-white text-center mb-8 text-3d">
+            <h2 className="text-display font-bold tracking-tight text-white text-center mb-8 text-3d">
               Featured Quizzes
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
