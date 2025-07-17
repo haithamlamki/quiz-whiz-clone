@@ -4,8 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/Logo';
-import { Plus, Trash2, Save, ArrowLeft, Upload } from 'lucide-react';
+import { QuestionEditor } from '@/components/QuestionEditor';
+import { QuestionsList } from '@/components/QuestionsList';
+import { ArrowLeft, Save, Upload, Eye, Settings, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Question } from '@/types/quiz';
 
@@ -16,68 +20,49 @@ export default function CreateQuiz() {
   const [backgroundTheme, setBackgroundTheme] = useState('bg-sky-600');
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
-    question: '',
-    answers: ['', '', '', ''],
-    correctAnswer: 0,
-    timeLimit: 20,
-    points: 1000
-  });
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
-  const addQuestion = () => {
-    if (currentQuestion.question && currentQuestion.answers?.some(a => a.trim())) {
-      const newQuestion: Question = {
-        id: crypto.randomUUID(),
-        question: currentQuestion.question,
-        answers: currentQuestion.answers || [],
-        correctAnswer: currentQuestion.correctAnswer || 0,
-        timeLimit: currentQuestion.timeLimit || 20,
-        points: currentQuestion.points || 1000
-      };
-      setQuestions([...questions, newQuestion]);
-      setCurrentQuestion({
-        question: '',
-        answers: ['', '', '', ''],
-        correctAnswer: 0,
-        timeLimit: 20,
-        points: 1000
-      });
-    }
+  const handleQuestionAdd = (question: Question) => {
+    const newQuestion = { ...question, order: questions.length };
+    setQuestions([...questions, newQuestion]);
   };
 
-  const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
+  const handleQuestionUpdate = (updatedQuestion: Question) => {
+    setQuestions(questions.map(q => 
+      q.id === updatedQuestion.id ? updatedQuestion : q
+    ));
+    setEditingQuestion(null);
   };
 
-  const updateAnswer = (index: number, value: string) => {
-    const newAnswers = [...(currentQuestion.answers || ['', '', '', ''])];
-    newAnswers[index] = value;
-    setCurrentQuestion({ ...currentQuestion, answers: newAnswers });
+  const handleQuestionsReorder = (reorderedQuestions: Question[]) => {
+    setQuestions(reorderedQuestions);
+  };
+
+  const handleQuestionEdit = (question: Question) => {
+    setEditingQuestion(question);
+  };
+
+  const handleQuestionDelete = (id: string) => {
+    setQuestions(questions.filter(q => q.id !== id));
   };
 
   const saveQuiz = () => {
     if (quizTitle && questions.length > 0) {
-      // Generate unique quiz ID and PIN
       const quizId = Math.random().toString(36).substr(2, 9);
-      const pin = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit PIN
+      const pin = Math.floor(100000 + Math.random() * 900000).toString();
       
       const quizData = {
         id: quizId,
         title: quizTitle,
         description: quizDescription,
-        questions,
+        questions: questions.sort((a, b) => a.order - b.order),
         backgroundTheme: customBackground ? 'custom' : backgroundTheme,
         customBackground,
         pin,
         createdAt: new Date().toISOString()
       };
       
-      // Save to localStorage (in real app, would save to backend)
       localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
-      
-      console.log('Quiz saved:', quizData);
-      
-      // Navigate to success page with PIN and QR code
       navigate(`/quiz-saved/${quizId}`);
     }
   };
@@ -95,7 +80,14 @@ export default function CreateQuiz() {
     }
   };
 
-  const answerColors = ['red', 'blue', 'yellow', 'green'] as const;
+  const getQuestionTypeStats = () => {
+    const stats = questions.reduce((acc, question) => {
+      acc[question.type] = (acc[question.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(stats);
+  };
 
   return (
     <div 
@@ -108,10 +100,10 @@ export default function CreateQuiz() {
       }}
     >
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header with Logo and Title */}
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
           <div className="flex items-center gap-4 mb-8 pt-4">
-            <Button variant="outline" onClick={() => navigate('/')}>
+            <Button variant="glass" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
@@ -119,203 +111,274 @@ export default function CreateQuiz() {
               <Logo size="md" />
               <span className="text-2xl font-bold text-white">Abraj Quiz</span>
             </div>
-            <h1 className="text-4xl font-bold text-white ml-auto">Create Quiz</h1>
+            <div className="ml-auto flex items-center gap-3">
+              <h1 className="text-4xl font-bold text-white">Create Quiz</h1>
+              <Wand2 className="h-8 w-8 text-white" />
+            </div>
           </div>
 
-          {/* Quiz Info */}
-          <Card className="mb-8 bg-white/95 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Quiz Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title">Quiz Title</Label>
-                <Input
-                  id="title"
-                  value={quizTitle}
-                  onChange={(e) => setQuizTitle(e.target.value)}
-                  placeholder="Enter quiz title"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={quizDescription}
-                  onChange={(e) => setQuizDescription(e.target.value)}
-                  placeholder="Enter quiz description"
-                />
-              </div>
-              <div>
-                <Label htmlFor="background">Background Theme</Label>
-                <div className="space-y-4">
-                  <select
-                    id="background"
-                    value={customBackground ? 'custom' : backgroundTheme}
-                    onChange={(e) => {
-                      if (e.target.value !== 'custom') {
-                        setBackgroundTheme(e.target.value);
-                        setCustomBackground(null);
-                      }
-                    }}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="bg-sky-600">Sky Blue</option>
-                    <option value="bg-purple-600">Purple</option>
-                    <option value="bg-green-600">Green</option>
-                    <option value="bg-orange-600">Orange</option>
-                    <option value="bg-red-600">Red</option>
-                    <option value="bg-indigo-600">Indigo</option>
-                    <option value="bg-pink-600">Pink</option>
-                    <option value="bg-teal-600">Teal</option>
-                    {customBackground && <option value="custom">Custom Image</option>}
-                  </select>
+          {/* Main Content */}
+          <Tabs defaultValue="setup" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 bg-white/20 backdrop-blur-sm">
+              <TabsTrigger value="setup" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Setup
+              </TabsTrigger>
+              <TabsTrigger value="questions" className="flex items-center gap-2">
+                <Wand2 className="h-4 w-4" />
+                Questions ({questions.length})
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Preview
+              </TabsTrigger>
+            </TabsList>
 
-                  {/* Custom Image Upload */}
-                  <div className="space-y-2">
-                    <Label htmlFor="background-image">Or Upload Custom Background</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="background-image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                      />
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    {customBackground && (
-                      <div className="mt-2">
-                        <img 
-                          src={customBackground} 
-                          alt="Custom background preview" 
-                          className="w-full h-24 object-cover rounded-md border"
+            {/* Quiz Setup Tab */}
+            <TabsContent value="setup" className="space-y-6">
+              <Card className="bg-gradient-card backdrop-blur-sm border-border/30">
+                <CardHeader>
+                  <CardTitle>Quiz Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="title">Quiz Title</Label>
+                        <Input
+                          id="title"
+                          value={quizTitle}
+                          onChange={(e) => setQuizTitle(e.target.value)}
+                          placeholder="Enter an engaging quiz title"
+                          className="text-lg font-semibold"
                         />
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-2"
-                          onClick={() => {
-                            setCustomBackground(null);
-                            setBackgroundTheme('bg-sky-600');
+                      </div>
+                      <div>
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          value={quizDescription}
+                          onChange={(e) => setQuizDescription(e.target.value)}
+                          placeholder="Describe what this quiz is about..."
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="background">Background Theme</Label>
+                        <select
+                          id="background"
+                          value={customBackground ? 'custom' : backgroundTheme}
+                          onChange={(e) => {
+                            if (e.target.value !== 'custom') {
+                              setBackgroundTheme(e.target.value);
+                              setCustomBackground(null);
+                            }
                           }}
+                          className="flex h-12 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          Remove Custom Background
-                        </Button>
+                          <option value="bg-sky-600">Sky Blue</option>
+                          <option value="bg-purple-600">Purple</option>
+                          <option value="bg-green-600">Green</option>
+                          <option value="bg-orange-600">Orange</option>
+                          <option value="bg-red-600">Red</option>
+                          <option value="bg-indigo-600">Indigo</option>
+                          <option value="bg-pink-600">Pink</option>
+                          <option value="bg-teal-600">Teal</option>
+                          {customBackground && <option value="custom">Custom Image</option>}
+                        </select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label htmlFor="background-image">Custom Background</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="background-image"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-cta-primary file:text-white hover:file:bg-cta-primary-hover"
+                          />
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        {customBackground && (
+                          <div className="space-y-2">
+                            <img 
+                              src={customBackground} 
+                              alt="Custom background preview" 
+                              className="w-full h-32 object-cover rounded-xl border"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setCustomBackground(null);
+                                setBackgroundTheme('bg-sky-600');
+                              }}
+                            >
+                              Remove Custom Background
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Stats */}
+              {questions.length > 0 && (
+                <Card className="bg-gradient-card backdrop-blur-sm border-border/30">
+                  <CardHeader>
+                    <CardTitle>Quiz Statistics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-cta-primary">{questions.length}</div>
+                        <div className="text-sm text-muted-foreground">Total Questions</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-cta-primary">
+                          {Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / 60)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Estimated Minutes</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-cta-primary">
+                          {questions.reduce((sum, q) => sum + q.points, 0)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Total Points</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-cta-primary">
+                          {getQuestionTypeStats().length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Question Types</div>
+                      </div>
+                    </div>
+                    
+                    {getQuestionTypeStats().length > 0 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex flex-wrap gap-2">
+                          {getQuestionTypeStats().map(([type, count]) => (
+                            <Badge key={type} variant="secondary">
+                              {type.replace('-', ' ')}: {count}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Questions Tab */}
+            <TabsContent value="questions" className="space-y-6">
+              <QuestionEditor
+                onQuestionAdd={handleQuestionAdd}
+                existingQuestion={editingQuestion || undefined}
+                onQuestionUpdate={editingQuestion ? handleQuestionUpdate : undefined}
+              />
+
+              {editingQuestion && (
+                <div className="text-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEditingQuestion(null)}
+                  >
+                    Cancel Edit
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              )}
 
-          {/* Current Question */}
-          <Card className="mb-8 bg-white/95 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Add Question</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label htmlFor="question">Question</Label>
-                <Textarea
-                  id="question"
-                  value={currentQuestion.question}
-                  onChange={(e) => setCurrentQuestion({ ...currentQuestion, question: e.target.value })}
-                  placeholder="Enter your question"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {(currentQuestion.answers || ['', '', '', '']).map((answer, index) => (
-                  <div key={index} className="space-y-2">
-                    <Label htmlFor={`answer-${index}`} className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded bg-answer-${answerColors[index]}`} />
-                      Answer {index + 1}
-                      {currentQuestion.correctAnswer === index && (
-                        <span className="text-green-600 text-sm font-bold">✓ Correct</span>
-                      )}
-                    </Label>
-                    <Input
-                      id={`answer-${index}`}
-                      value={answer}
-                      onChange={(e) => updateAnswer(index, e.target.value)}
-                      placeholder={`Answer ${index + 1}`}
-                      className={currentQuestion.correctAnswer === index ? 'border-green-500' : ''}
-                      onClick={() => setCurrentQuestion({ ...currentQuestion, correctAnswer: index })}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="timeLimit">Time Limit (seconds)</Label>
-                  <Input
-                    id="timeLimit"
-                    type="number"
-                    value={currentQuestion.timeLimit}
-                    onChange={(e) => setCurrentQuestion({ ...currentQuestion, timeLimit: parseInt(e.target.value) || 20 })}
-                    min="5"
-                    max="120"
+              <Card className="bg-gradient-card backdrop-blur-sm border-border/30">
+                <CardHeader>
+                  <CardTitle>Questions List ({questions.length})</CardTitle>
+                  <p className="text-muted-foreground">
+                    Drag and drop to reorder questions
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <QuestionsList
+                    questions={questions}
+                    onQuestionsReorder={handleQuestionsReorder}
+                    onQuestionEdit={handleQuestionEdit}
+                    onQuestionDelete={handleQuestionDelete}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="points">Points</Label>
-                  <Input
-                    id="points"
-                    type="number"
-                    value={currentQuestion.points}
-                    onChange={(e) => setCurrentQuestion({ ...currentQuestion, points: parseInt(e.target.value) || 1000 })}
-                    min="100"
-                    max="2000"
-                    step="100"
-                  />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-              <Button variant="game" onClick={addQuestion}>
-                <Plus className="h-4 w-4" />
-                Add Question
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Questions List */}
-          {questions.length > 0 && (
-            <Card className="mb-8 bg-white/95 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Questions ({questions.length})</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {questions.map((question, index) => (
-                  <div key={question.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{index + 1}. {question.question}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {question.timeLimit}s • {question.points} points
-                      </p>
+            {/* Preview Tab */}
+            <TabsContent value="preview" className="space-y-6">
+              <Card className="bg-gradient-card backdrop-blur-sm border-border/30">
+                <CardHeader>
+                  <CardTitle>Quiz Preview</CardTitle>
+                  <p className="text-muted-foreground">
+                    This is how your quiz will appear to participants
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="text-center space-y-4">
+                    <h2 className="text-3xl font-bold">{quizTitle || 'Untitled Quiz'}</h2>
+                    <p className="text-lg text-muted-foreground">
+                      {quizDescription || 'No description provided'}
+                    </p>
+                    <div className="flex justify-center gap-4">
+                      <Badge variant="outline" className="text-lg px-4 py-2">
+                        {questions.length} Questions
+                      </Badge>
+                      <Badge variant="outline" className="text-lg px-4 py-2">
+                        ~{Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / 60)} min
+                      </Badge>
                     </div>
-                    <Button variant="destructive" size="sm" onClick={() => removeQuestion(index)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Save Quiz */}
-          <div className="text-center">
+                  {questions.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold">Question Overview</h3>
+                      <div className="grid gap-3">
+                        {questions.slice(0, 3).map((question, index) => (
+                          <div key={question.id} className="p-4 border rounded-xl bg-white/50">
+                            <div className="flex items-start gap-3">
+                              <Badge variant="outline">{index + 1}</Badge>
+                              <div>
+                                <p className="font-medium">{question.question}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {question.type.replace('-', ' ')} • {question.timeLimit}s • {question.points} pts
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {questions.length > 3 && (
+                          <div className="text-center text-muted-foreground">
+                            ... and {questions.length - 3} more questions
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* Save Button */}
+          <div className="text-center mt-8">
             <Button 
-              variant="game" 
-              size="hero" 
+              variant="cta" 
+              size="xl" 
               onClick={saveQuiz}
               disabled={!quizTitle || questions.length === 0}
+              className="btn-float"
             >
-              <Save className="h-5 w-5" />
-              Save Quiz
+              <Save className="h-6 w-6" />
+              Save & Publish Quiz
             </Button>
           </div>
         </div>

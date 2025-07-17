@@ -1,11 +1,97 @@
-export interface Question {
+export type QuestionType = 
+  | 'multiple-choice' 
+  | 'true-false' 
+  | 'open-ended' 
+  | 'puzzle' 
+  | 'poll' 
+  | 'word-cloud' 
+  | 'brainstorm' 
+  | 'slider' 
+  | 'hotspot';
+
+export interface BaseQuestion {
   id: string;
+  type: QuestionType;
   question: string;
-  answers: string[];
-  correctAnswer: number; // index of correct answer
-  timeLimit: number; // in seconds
+  timeLimit: number;
   points: number;
+  order: number;
+  media?: {
+    type: 'image' | 'video';
+    url: string;
+    alt?: string;
+  };
 }
+
+export interface MultipleChoiceQuestion extends BaseQuestion {
+  type: 'multiple-choice';
+  answers: string[];
+  correctAnswer: number;
+}
+
+export interface TrueFalseQuestion extends BaseQuestion {
+  type: 'true-false';
+  correctAnswer: boolean;
+}
+
+export interface OpenEndedQuestion extends BaseQuestion {
+  type: 'open-ended';
+  sampleAnswers?: string[];
+}
+
+export interface PuzzleQuestion extends BaseQuestion {
+  type: 'puzzle';
+  items: string[];
+  correctOrder: number[];
+}
+
+export interface PollQuestion extends BaseQuestion {
+  type: 'poll';
+  options: string[];
+}
+
+export interface WordCloudQuestion extends BaseQuestion {
+  type: 'word-cloud';
+  prompt: string;
+}
+
+export interface BrainstormQuestion extends BaseQuestion {
+  type: 'brainstorm';
+  prompt: string;
+}
+
+export interface SliderQuestion extends BaseQuestion {
+  type: 'slider';
+  min: number;
+  max: number;
+  step: number;
+  correctValue?: number;
+  unit?: string;
+}
+
+export interface HotspotQuestion extends BaseQuestion {
+  type: 'hotspot';
+  imageUrl: string;
+  hotspots: {
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    isCorrect: boolean;
+  }[];
+}
+
+export type Question = 
+  | MultipleChoiceQuestion 
+  | TrueFalseQuestion 
+  | OpenEndedQuestion 
+  | PuzzleQuestion 
+  | PollQuestion 
+  | WordCloudQuestion 
+  | BrainstormQuestion 
+  | SliderQuestion 
+  | HotspotQuestion;
 
 export interface Quiz {
   id: string;
