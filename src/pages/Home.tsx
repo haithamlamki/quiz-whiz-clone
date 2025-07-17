@@ -52,7 +52,7 @@ export default function Home() {
     >
       <div className="container mx-auto px-4 py-8">
         {/* Header with Logo and Title */}
-        <div className="flex items-center justify-end gap-4 mb-12 pt-4">
+        <div className="flex items-center justify-start gap-4 mb-12 pt-4">
           <div className="flex items-center gap-3">
             <Logo size="lg" />
             <span className="text-4xl font-bold text-white">Abraj Quiz</span>
