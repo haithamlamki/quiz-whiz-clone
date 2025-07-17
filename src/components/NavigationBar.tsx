@@ -25,7 +25,7 @@ export function NavigationBar() {
           {/* Logo and Brand */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Logo size="md" />
-            <span className="text-2xl font-bold text-primary">Abraj Quiz</span>
+            <span className="text-title text-primary">Abraj Quiz</span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -18,6 +18,21 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'montserrat': ['Montserrat', 'sans-serif'],
+				'sans': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+			},
+			fontSize: {
+				'hero': ['3.5rem', { lineHeight: '1.1', fontWeight: '800' }],
+				'display': ['2.5rem', { lineHeight: '1.2', fontWeight: '700' }],
+				'title': ['2rem', { lineHeight: '1.3', fontWeight: '600' }],
+				'heading': ['1.5rem', { lineHeight: '1.4', fontWeight: '600' }],
+				'subheading': ['1.25rem', { lineHeight: '1.5', fontWeight: '500' }],
+				'body-lg': ['1.125rem', { lineHeight: '1.6', fontWeight: '400' }],
+				'body': ['1rem', { lineHeight: '1.6', fontWeight: '400' }],
+				'body-sm': ['0.875rem', { lineHeight: '1.5', fontWeight: '400' }],
+				'caption': ['0.75rem', { lineHeight: '1.4', fontWeight: '500' }],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
