@@ -7,51 +7,41 @@ import { Play, Plus, Users, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Sample quiz data
-const sampleQuizzes = [
-  {
-    id: '1',
-    title: 'General Knowledge',
-    description: 'Test your knowledge across various topics',
-    playerCount: 156,
-    duration: '8 min'
-  },
-  {
-    id: '2', 
-    title: 'Science Quiz',
-    description: 'Explore the wonders of science',
-    playerCount: 89,
-    duration: '10 min'
-  },
-  {
-    id: '3',
-    title: 'History Challenge',
-    description: 'Journey through time and test your historical knowledge',
-    playerCount: 234,
-    duration: '12 min'
-  }
-];
-
+const sampleQuizzes = [{
+  id: '1',
+  title: 'General Knowledge',
+  description: 'Test your knowledge across various topics',
+  playerCount: 156,
+  duration: '8 min'
+}, {
+  id: '2',
+  title: 'Science Quiz',
+  description: 'Explore the wonders of science',
+  playerCount: 89,
+  duration: '10 min'
+}, {
+  id: '3',
+  title: 'History Challenge',
+  description: 'Journey through time and test your historical knowledge',
+  playerCount: 234,
+  duration: '12 min'
+}];
 export default function Home() {
   const navigate = useNavigate();
   const [gamePin, setGamePin] = React.useState('');
-
   const handleJoinGame = () => {
     if (gamePin.trim()) {
       navigate(`/join/${gamePin}`);
     }
   };
-
   const handleCreateQuiz = () => {
     navigate('/create');
   };
-
   const handlePlayQuiz = (quizId: string) => {
     navigate(`/host/${quizId}`);
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-game">
-      <div className="container mx-auto px-4 py-8">
+  return <div className="min-h-screen bg-gradient-game">
+      <div className="container mx-auto px-4 py-8 rounded-none bg-sky-600">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-6xl font-black text-white mb-4 animate-bounce-in">
@@ -76,20 +66,8 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input
-                placeholder="Game PIN"
-                value={gamePin}
-                onChange={(e) => setGamePin(e.target.value)}
-                className="text-center text-xl font-bold h-12"
-                maxLength={6}
-              />
-              <Button 
-                variant="game" 
-                size="hero" 
-                className="w-full"
-                onClick={handleJoinGame}
-                disabled={!gamePin.trim()}
-              >
+              <Input placeholder="Game PIN" value={gamePin} onChange={e => setGamePin(e.target.value)} className="text-center text-xl font-bold h-12" maxLength={6} />
+              <Button variant="game" size="hero" className="w-full" onClick={handleJoinGame} disabled={!gamePin.trim()}>
                 <Users className="h-5 w-5" />
                 Join Game
               </Button>
@@ -108,12 +86,7 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                variant="game" 
-                size="hero" 
-                className="w-full"
-                onClick={handleCreateQuiz}
-              >
+              <Button variant="game" size="hero" className="w-full" onClick={handleCreateQuiz}>
                 <Zap className="h-5 w-5" />
                 Create Quiz
               </Button>
@@ -127,19 +100,9 @@ export default function Home() {
             Featured Quizzes
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sampleQuizzes.map((quiz) => (
-              <GameCard
-                key={quiz.id}
-                title={quiz.title}
-                description={quiz.description}
-                playerCount={quiz.playerCount}
-                duration={quiz.duration}
-                onPlay={() => handlePlayQuiz(quiz.id)}
-              />
-            ))}
+            {sampleQuizzes.map(quiz => <GameCard key={quiz.id} title={quiz.title} description={quiz.description} playerCount={quiz.playerCount} duration={quiz.duration} onPlay={() => handlePlayQuiz(quiz.id)} />)}
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
