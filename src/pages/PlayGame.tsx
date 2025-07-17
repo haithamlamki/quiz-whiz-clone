@@ -56,6 +56,11 @@ export default function PlayGame() {
   const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === sampleQuiz.questions.length - 1;
 
+  // Safety check - if no current question, don't render
+  if (!currentQuestion) {
+    return null;
+  }
+
   useEffect(() => {
     // Simulate game start
     const timer = setTimeout(() => {
