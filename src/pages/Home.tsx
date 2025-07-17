@@ -41,18 +41,26 @@ export default function Home() {
   const handlePlayQuiz = (quizId: string) => {
     navigate(`/host/${quizId}`);
   };
-  return <div className="min-h-screen bg-gradient-game">
-      <div className="container mx-auto px-4 py-8 rounded-none bg-gradient-game">
-        {/* Logo */}
-        <div className="absolute top-4 left-4">
-          <Logo size="lg" />
+  return <div 
+      className="min-h-screen" 
+      style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      <div className="container mx-auto px-4 py-8">
+        {/* Header with Logo and Title */}
+        <div className="flex items-center gap-4 mb-12 pt-4">
+          <div className="flex items-center gap-3">
+            <Logo size="lg" />
+            <span className="text-4xl font-bold text-white">Abraj Quiz</span>
+          </div>
         </div>
         
-        {/* Header */}
-        <div className="text-center mb-12 pt-8">
-          <h1 className="text-6xl font-black text-white mb-4 animate-bounce-in">
-            Abraj Quiz
-          </h1>
+        {/* Subtitle */}
+        <div className="text-center mb-12">
           <p className="text-xl text-white/90 mb-8">
             Create, play, and learn with interactive quizzes
           </p>
