@@ -17,57 +17,44 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 15%;
 
-    --primary: 270 95% 60%;          /* Bright Purple */
+    --primary: 189 100% 25%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 100% 92%;       /* Light Purple */
-    --secondary-foreground: 270 95% 25%;
+    --secondary: 189 100% 92%;
+    --secondary-foreground: 189 100% 15%;
 
-    --accent: 195 100% 50%;          /* Bright Blue */
+    --muted: 189 30% 95%;
+    --muted-foreground: 189 15% 45%;
+
+    --accent: 189 100% 25%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 270 30% 95%;
-    --muted-foreground: 270 15% 45%;
-
-    --destructive: 0 85% 60%;        /* Bright Red */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 270 20% 85%;
-    --input: 270 15% 90%;
-    --ring: 270 95% 60%;
+    --border: 0 0% 64%;
+    --input: 0 0% 64%;
+    --ring: 189 100% 25%;
 
-    /* Vibrant Quiz Colors */
-    --answer-red: 0 85% 60%;         /* Bright Red */
-    --answer-blue: 210 85% 60%;      /* Bright Blue */
-    --answer-yellow: 48 95% 65%;     /* Bright Yellow */
-    --answer-green: 142 75% 55%;     /* Bright Green */
+    /* Kahoot signature colors */
+    --answer-red: 0 85% 60%;
+    --answer-blue: 210 85% 60%;
+    --answer-yellow: 48 95% 65%;
+    --answer-green: 142 75% 55%;
     
-    /* Brand Colors */
-    --brand-purple: 270 95% 60%;     /* Main Purple */
-    --brand-red: 0 85% 60%;          /* Vibrant Red */
-    --brand-blue: 210 85% 60%;       /* Electric Blue */
-    --brand-green: 142 75% 55%;      /* Fresh Green */
-    --brand-yellow: 48 95% 65%;      /* Sunny Yellow */
-    
-    /* Interactive States */
-    --hover-purple: 270 95% 65%;
-    --hover-red: 0 85% 65%;
-    --hover-blue: 210 85% 65%;
-    --hover-green: 142 75% 60%;
-    --hover-yellow: 48 95% 70%;
+    /* Custom colors for website */
+    --button-primary: 189 100% 25%; /* #00778B */
+    --input-border: 0 0% 64%; /* #A4A4A4 */
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(270 95% 60%), hsl(270 95% 70%));
-    --gradient-game: linear-gradient(180deg, hsl(270 95% 60%) 0%, hsl(210 85% 60%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(189 100% 25%), hsl(189 100% 35%));
+    --gradient-game: linear-gradient(180deg, hsl(189 100% 25%) 0%, hsl(189 100% 35%) 100%);
     --gradient-celebration: linear-gradient(45deg, hsl(48 95% 65%), hsl(142 75% 55%), hsl(210 85% 60%), hsl(0 85% 60%));
-    --gradient-rainbow: linear-gradient(90deg, hsl(270 95% 60%), hsl(0 85% 60%), hsl(48 95% 65%), hsl(142 75% 55%), hsl(210 85% 60%));
     --gradient-classroom: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('/src/assets/classroom-bg-hq.jpg');
     
     /* Shadows */
-    --shadow-game: 0 10px 40px -10px hsl(270 95% 60% / 0.3);
+    --shadow-game: 0 10px 40px -10px hsl(189 100% 25% / 0.3);
     --shadow-answer: 0 4px 20px -4px hsl(var(--foreground) / 0.1);
-    --shadow-purple: 0 10px 30px -10px hsl(270 95% 60% / 0.4);
-    --shadow-colorful: 0 10px 30px -10px hsl(270 95% 60% / 0.2), 0 0 0 1px hsl(270 95% 60% / 0.1);
     
     /* Animations */
     --transition-game: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -152,31 +139,11 @@ All colors MUST be HSL.
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, hsl(270 95% 60%), hsl(270 95% 45%));
+    background: linear-gradient(135deg, hsl(189 100% 25%), hsl(189 100% 45%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-
-  .text-rainbow {
-    background: var(--gradient-rainbow);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Color utility classes */
-  .bg-brand-purple { background-color: hsl(var(--brand-purple)); }
-  .bg-brand-red { background-color: hsl(var(--brand-red)); }
-  .bg-brand-blue { background-color: hsl(var(--brand-blue)); }
-  .bg-brand-green { background-color: hsl(var(--brand-green)); }
-  .bg-brand-yellow { background-color: hsl(var(--brand-yellow)); }
-
-  .text-brand-purple { color: hsl(var(--brand-purple)); }
-  .text-brand-red { color: hsl(var(--brand-red)); }
-  .text-brand-blue { color: hsl(var(--brand-blue)); }
-  .text-brand-green { color: hsl(var(--brand-green)); }
-  .text-brand-yellow { color: hsl(var(--brand-yellow)); }
 
   /* Responsive Typography handled in Tailwind config */
 }
