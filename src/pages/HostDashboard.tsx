@@ -93,66 +93,101 @@ export default function HostDashboard() {
 
   if (gameState === 'lobby') {
     return (
-      <div className="min-h-screen bg-gradient-game">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Game PIN Display */}
-            <Card className="mb-8 bg-white/95 backdrop-blur-sm shadow-game">
-              <CardContent className="p-8">
-                <h1 className="text-4xl font-bold mb-4">Game PIN</h1>
-                <div className="text-8xl font-black text-primary mb-4">{pin}</div>
-                <p className="text-xl text-muted-foreground">
-                  Players can join at kahoot.it with this PIN
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Quiz Info */}
-            <Card className="mb-8 bg-white/95 backdrop-blur-sm shadow-game">
-              <CardHeader>
-                <CardTitle className="text-2xl">{sampleQuiz.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-center gap-8 text-lg">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    <span>{sampleQuiz.questions.length} Questions</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    <span>{players.length} Players</span>
-                  </div>
+      <div className="min-h-screen" style={{
+        backgroundImage: 'linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 800\'%3E%3Cdefs%3E%3ClinearGradient id=\'classroom\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' style=\'stop-color:%23a8d5ba;stop-opacity:1\' /%3E%3Cstop offset=\'50%25\' style=\'stop-color:%2398c7a8;stop-opacity:1\' /%3E%3Cstop offset=\'100%25\' style=\'stop-color:%2385c7a1;stop-opacity:1\' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'url(%23classroom)\'/%3E%3C/svg%3E")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}>
+        {/* Header */}
+        <header className="bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex justify-between items-center">
+              {/* Logo and Title */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-cyan-500 font-bold text-xl">A</span>
                 </div>
-              </CardContent>
-            </Card>
+                <h1 className="text-2xl font-bold text-white">Abraj Quiz</h1>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate('/create')}
+                  className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-semibold transition-colors"
+                >
+                  Manage Questions
+                </button>
+                <button
+                  onClick={startGame}
+                  className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-semibold transition-colors"
+                >
+                  Start Game
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
 
-            {/* Players List */}
-            <Card className="mb-8 bg-white/95 backdrop-blur-sm shadow-game">
-              <CardHeader>
-                <CardTitle>Players in Lobby</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {players.map((player) => (
-                    <div key={player.id} className="p-3 bg-muted rounded-lg">
-                      <div className="font-semibold">{player.name}</div>
-                    </div>
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+          {/* QR Code and Game PIN Section */}
+          <div className="text-center mb-8">
+            {/* QR Code Placeholder */}
+            <div className="bg-white p-6 rounded-lg shadow-lg mb-6 inline-block">
+              <div className="w-48 h-48 bg-black rounded-lg flex items-center justify-center mb-4">
+                <div className="text-white text-xs grid grid-cols-8 gap-1">
+                  {Array.from({ length: 64 }, (_, i) => (
+                    <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-white' : 'bg-black'}`} />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="text-cyan-500 font-semibold">Scan QR to join</p>
+            </div>
 
-            {/* Start Game Button */}
-            <Button 
-              variant="game" 
-              size="hero" 
-              onClick={startGame}
-              disabled={players.length === 0}
+            {/* Game PIN */}
+            <div className="bg-cyan-500 text-white px-8 py-4 rounded-lg text-4xl font-bold mb-4 inline-block shadow-lg">
+              {pin}
+            </div>
+
+            {/* Copy Join Link Button */}
+            <button 
+              onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/join/${pin}`)}
+              className="bg-cyan-500 text-white px-6 py-3 rounded-lg hover:bg-cyan-600 font-semibold transition-colors block mx-auto mb-8"
             >
-              <Play className="h-6 w-6" />
-              Start Game
-            </Button>
+              Copy Join Link
+            </button>
+
+            {/* Waiting Text */}
+            <h2 className="text-2xl font-bold text-white mb-8">Waiting for players to join</h2>
           </div>
+
+          {/* Connected Players Section */}
+          <div className="bg-gray-800/80 rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-cyan-400 text-lg font-semibold mb-4">Connected Players:</h3>
+            <div className="flex flex-wrap gap-3">
+              {players.map((player) => (
+                <div 
+                  key={player.id} 
+                  className="bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold"
+                >
+                  {player.name}
+                </div>
+              ))}
+              {players.length === 0 && (
+                <p className="text-gray-400">No players connected yet...</p>
+              )}
+            </div>
+          </div>
+
+          {/* Start Button */}
+          <button
+            onClick={startGame}
+            disabled={players.length === 0}
+            className="bg-cyan-500 text-white px-12 py-4 rounded-lg text-xl font-bold hover:bg-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors mt-8"
+          >
+            Start
+          </button>
         </div>
       </div>
     );

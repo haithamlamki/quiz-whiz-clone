@@ -40,63 +40,57 @@ export default function GameLobby() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-game">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Game Status */}
-          <Card className="mb-8 bg-white/95 backdrop-blur-sm shadow-game">
-            <CardContent className="p-8">
-              <div className="text-6xl mb-4">🎮</div>
-              <h1 className="text-4xl font-bold mb-4">You're in!</h1>
-              <p className="text-xl text-muted-foreground mb-4">
-                Game PIN: <span className="font-bold text-primary">{pin}</span>
-              </p>
-              <div className="text-lg">
-                {gameStarted ? 'Starting game...' : 'Waiting for host to start the game...'}
-              </div>
-              {!gameStarted && (
-                <div className="animate-pulse text-primary font-semibold mt-2">
-                  Get ready! 🚀
-                </div>
-              )}
-            </CardContent>
-          </Card>
+    <div className="min-h-screen" style={{
+      backgroundImage: 'linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 800\'%3E%3Cdefs%3E%3ClinearGradient id=\'classroom\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' style=\'stop-color:%23a8d5ba;stop-opacity:1\' /%3E%3Cstop offset=\'50%25\' style=\'stop-color:%2398c7a8;stop-opacity:1\' /%3E%3Cstop offset=\'100%25\' style=\'stop-color:%2385c7a1;stop-opacity:1\' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'url(%23classroom)\'/%3E%3C/svg%3E")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    }}>
+      {/* Header */}
+      <header className="bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <span className="text-cyan-500 font-bold text-xl">A</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Abraj Quiz</h1>
+          </div>
+        </div>
+      </header>
 
-          {/* Players List */}
-          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-center gap-2">
-                <Users className="h-6 w-6" />
-                Players ({players.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {players.map((player, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-4 rounded-lg font-semibold ${
-                      player === playerName 
-                        ? 'bg-primary text-primary-foreground ring-2 ring-primary/50' 
-                        : 'bg-muted'
-                    } animate-bounce-in`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    {player}
-                    {player === playerName && (
-                      <div className="text-xs opacity-80 mt-1">You</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              
-              {players.length === 0 && (
-                <div className="text-muted-foreground py-8">
-                  Waiting for players to join...
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
+        {/* Classroom Blackboard Area */}
+        <div className="relative w-full max-w-3xl">
+          {/* Blackboard */}
+          <div className="bg-gray-800 rounded-lg p-8 shadow-2xl mb-8">
+            <div className="flex items-center justify-center h-32">
+              {gameStarted ? (
+                <div className="text-white">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-xl">Starting game...</p>
+                </div>
+              ) : (
+                <div className="text-white text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          {/* Waiting Text */}
+          <h2 className="text-2xl font-bold text-white text-center mb-8">
+            {gameStarted ? 'Starting game...' : 'Waiting for the players'}
+          </h2>
+        </div>
+
+        {/* Player Name Display */}
+        <div className="fixed bottom-4 left-4 bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold">
+          {playerName}
+        </div>
+
+        {/* Score Display */}
+        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-xl">
+          0
         </div>
       </div>
     </div>
