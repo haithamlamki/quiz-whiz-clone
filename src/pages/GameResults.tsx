@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Leaderboard } from '@/components/Leaderboard';
 import Logo from '@/components/Logo';
-import { Trophy, Home, RotateCcw, Share2 } from 'lucide-react';
+import { Trophy, Users } from 'lucide-react';
 
 // Sample leaderboard data
 const samplePlayers = [
@@ -115,35 +115,15 @@ export default function GameResults() {
 
               {/* Actions */}
               <Card className="bg-white/95 backdrop-blur-sm">
-                <CardContent className="p-6 space-y-3">
+                <CardContent className="p-6">
                   <Button 
                     variant="game" 
                     size="lg" 
                     className="w-full"
                     onClick={() => navigate('/')}
                   >
-                    <Home className="h-5 w-5" />
-                    Back to Home
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="w-full"
-                    onClick={() => window.location.reload()}
-                  >
-                    <RotateCcw className="h-5 w-5" />
-                    Play Again
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="w-full"
-                    onClick={shareResults}
-                  >
-                    <Share2 className="h-5 w-5" />
-                    Share Results
+                    <Users className="h-5 w-5" />
+                    Join New Game
                   </Button>
                 </CardContent>
               </Card>
