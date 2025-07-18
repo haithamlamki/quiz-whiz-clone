@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/Logo';
 import { Copy, Share2, Play, Home, QrCode, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import QRCode from 'qrcode';
 
 interface SavedQuiz {
@@ -26,23 +27,81 @@ export default function QuizSaved() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
 
   useEffect(() => {
-    // Get quiz data from localStorage (in real app, would fetch from backend)
-    const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
-    if (savedQuizData) {
-      const quizData = JSON.parse(savedQuizData);
-      setQuiz(quizData);
-      
-      // Ensure PIN mapping is stored for joining
-      if (quizData.pin) {
-        localStorage.setItem(`pin_${quizData.pin}`, quizId);
+    const loadQuizAndCreateGame = async () => {
+      if (!quizId) return;
+
+      try {
+        // First check localStorage for quiz data
+        const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+        let quizData = null;
+        
+        if (savedQuizData) {
+          quizData = JSON.parse(savedQuizData);
+        } else {
+          // If not in localStorage, try to fetch from Supabase
+          const { data } = await supabase
+            .from('quizzes')
+            .select(`
+              id,
+              title,
+              description,
+              questions (*)
+            `)
+            .eq('id', quizId)
+            .single();
+          
+          if (data) {
+            quizData = {
+              id: data.id,
+              title: data.title,
+              description: data.description,
+              questions: data.questions,
+              backgroundTheme: 'classroom', // default
+            };
+          }
+        }
+
+        if (!quizData) return;
+
+        // Generate PIN and create game session in Supabase
+        const { data: pinData } = await supabase.rpc('generate_game_pin');
+        const gamePin = pinData;
+
+        // Create game in Supabase
+        const { error: gameError } = await supabase
+          .from('games')
+          .insert({
+            game_pin: gamePin,
+            quiz_id: quizId,
+            host_id: 'anonymous-host', // For now, since we don't have auth
+            status: 'waiting'
+          });
+
+        if (gameError) {
+          console.error('Error creating game:', gameError);
+          return;
+        }
+
+        // Update quiz data with PIN
+        const updatedQuiz = { ...quizData, pin: gamePin };
+        setQuiz(updatedQuiz);
+
+        // Store in localStorage for backward compatibility
+        localStorage.setItem(`quiz_${quizId}`, JSON.stringify(updatedQuiz));
+        localStorage.setItem(`pin_${gamePin}`, quizId);
+
+        // Generate QR code
+        const joinUrl = `${window.location.origin}/join/${gamePin}`;
+        QRCode.toDataURL(joinUrl, { width: 200, margin: 2 })
+          .then(url => setQrCodeUrl(url))
+          .catch(err => console.error('Error generating QR code:', err));
+
+      } catch (error) {
+        console.error('Error loading quiz and creating game:', error);
       }
-      
-      // Generate QR code
-      const joinUrl = `${window.location.origin}/join/${quizData.pin}`;
-      QRCode.toDataURL(joinUrl, { width: 200, margin: 2 })
-        .then(url => setQrCodeUrl(url))
-        .catch(err => console.error('Error generating QR code:', err));
-    }
+    };
+
+    loadQuizAndCreateGame();
   }, [quizId]);
 
   const copyPin = () => {

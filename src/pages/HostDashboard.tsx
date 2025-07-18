@@ -9,6 +9,7 @@ import { GamePinDisplay, PinGenerator } from '@/components/GamePinDisplay';
 import Logo from '@/components/Logo';
 import { Users, Play, SkipForward, Trophy, Clock, Eye, Settings, Pause } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // Sample quiz data
 const sampleQuiz = {
@@ -64,118 +65,158 @@ export default function HostDashboard() {
 
   // Load quiz data and set background
   useEffect(() => {
-    if (quizId) {
-      const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
-      
-      if (savedQuizData) {
-        const quizData = JSON.parse(savedQuizData);
-        setQuiz(quizData);
+    const loadQuizAndGame = async () => {
+      if (!quizId) return;
+
+      try {
+        // First check localStorage for quiz data
+        const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+        let quizData = null;
         
-        // Use existing PIN or generate a new 6-digit PIN
-        let currentPin = quizData.pin;
-        if (!currentPin) {
-          // Generate a 6-digit PIN
-          currentPin = Math.floor(100000 + Math.random() * 900000).toString();
-          // Ensure PIN is unique
-          while (localStorage.getItem(`pin_${currentPin}`)) {
-            currentPin = Math.floor(100000 + Math.random() * 900000).toString();
+        if (savedQuizData) {
+          quizData = JSON.parse(savedQuizData);
+        }
+
+        if (quizData) {
+          setQuiz(quizData);
+
+          // Check if there's already a game for this quiz
+          const { data: existingGame } = await supabase
+            .from('games')
+            .select('game_pin')
+            .eq('quiz_id', quizId)
+            .eq('is_active', true)
+            .single();
+
+          if (existingGame) {
+            setPin(existingGame.game_pin);
+          } else if (quizData.pin) {
+            // Check if the PIN from localStorage corresponds to an active game
+            const { data: gameByPin } = await supabase
+              .from('games')
+              .select('game_pin')
+              .eq('game_pin', quizData.pin)
+              .eq('is_active', true)
+              .single();
+
+            if (gameByPin) {
+              setPin(quizData.pin);
+            } else {
+              // Create a new game with the existing PIN or generate new one
+              await createNewGame(quizData);
+            }
+          } else {
+            // Create a new game
+            await createNewGame(quizData);
+          }
+
+          // Set background based on quiz data
+          if (quizData.customBackground) {
+            setQuizBackground('custom', quizData.customBackground);
           }
         }
-        setPin(currentPin);
-        
-        // ALWAYS store PIN mapping - this is critical for joining to work
-        localStorage.setItem(`pin_${currentPin}`, quizId);
-        
-        // Create game session for this PIN
-        const gameSession = {
-          pin: currentPin,
-          quizId: quizId,
-          hostId: 'host-1', // In real app, this would be the authenticated user ID
-          status: 'lobby',
-          players: [],
-          currentQuestion: 0,
-          createdAt: Date.now()
-        };
-        localStorage.setItem(`game_${currentPin}`, JSON.stringify(gameSession));
-        console.log('Host: Created game session for PIN:', currentPin);
-        
-        // Update quiz data if PIN was missing
-        if (!quizData.pin) {
-          quizData.pin = currentPin;
-          localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
-        }
-        
-        // Set background based on quiz data
-        if (quizData.customBackground) {
-          setQuizBackground('custom', quizData.customBackground);
-        }
-      } else {
-        // If quiz not found, create minimal structure with PIN
-        const currentPin = Math.floor(100000 + Math.random() * 900000).toString();
-        setPin(currentPin);
-        localStorage.setItem(`pin_${currentPin}`, quizId);
-        
-        // Create minimal quiz structure 
-        const minimalQuiz = {
-          id: quizId,
-          title: 'Sample Quiz',
-          pin: currentPin,
-          questions: []
-        };
-        setQuiz(minimalQuiz);
-        localStorage.setItem(`quiz_${quizId}`, JSON.stringify(minimalQuiz));
-        
-        // Create game session
-        const gameSession = {
-          pin: currentPin,
-          quizId: quizId,
-          hostId: 'host-1',
-          status: 'lobby',
-          players: [],
-          currentQuestion: 0,
-          createdAt: Date.now()
-        };
-        localStorage.setItem(`game_${currentPin}`, JSON.stringify(gameSession));
-        console.log('Host: Created game session for PIN (minimal):', currentPin);
+      } catch (error) {
+        console.error('Error loading quiz and game:', error);
       }
-    }
+    };
+
+    const createNewGame = async (quizData: any) => {
+      try {
+        // Generate PIN
+        const { data: pinData } = await supabase.rpc('generate_game_pin');
+        const gamePin = pinData;
+
+        // Create game in Supabase
+        const { error: gameError } = await supabase
+          .from('games')
+          .insert({
+            game_pin: gamePin,
+            quiz_id: quizId,
+            host_id: 'anonymous-host',
+            status: 'waiting'
+          });
+
+        if (gameError) {
+          console.error('Error creating game:', gameError);
+          return;
+        }
+
+        setPin(gamePin);
+
+        // Update localStorage
+        const updatedQuiz = { ...quizData, pin: gamePin };
+        setQuiz(updatedQuiz);
+        localStorage.setItem(`quiz_${quizId}`, JSON.stringify(updatedQuiz));
+        localStorage.setItem(`pin_${gamePin}`, quizId);
+      } catch (error) {
+        console.error('Error creating new game:', error);
+      }
+    };
+
+    loadQuizAndGame();
   }, [quizId, setQuizBackground]);
 
   // Reset background when leaving this page
-  // Poll for new players joining
+  // Subscribe to real-time player updates
   useEffect(() => {
     if (!pin) return;
-    
-    const pollForPlayers = () => {
-      const gameSessionString = localStorage.getItem(`game_${pin}`);
-      if (gameSessionString) {
-        const gameSession = JSON.parse(gameSessionString);
-        if (gameSession.players && gameSession.players.length > 0) {
-          console.log('Host: Found players in game session:', gameSession.players);
-          // Convert the game session players to our players format
-          const sessionPlayers = gameSession.players.map((player, index) => ({
+
+    const loadPlayers = async () => {
+      try {
+        const { data: game } = await supabase
+          .from('games')
+          .select('id')
+          .eq('game_pin', pin)
+          .single();
+
+        if (!game) return;
+
+        const { data: playersData } = await supabase
+          .from('players')
+          .select('*')
+          .eq('game_id', game.id);
+
+        if (playersData) {
+          const formattedPlayers = playersData.map(player => ({
             id: player.id,
             name: player.name,
-            score: 0,
+            score: player.score || 0,
             streak: 0,
             answered: false,
             isOnline: true,
-            joinedAt: player.joinedAt || Date.now(),
+            joinedAt: new Date(player.joined_at).getTime(),
             lastAnswerCorrect: false,
             correctAnswers: 0
           }));
-          setPlayers(sessionPlayers);
+          setPlayers(formattedPlayers);
         }
+      } catch (error) {
+        console.error('Error loading players:', error);
       }
     };
-    
-    // Initial check
-    pollForPlayers();
-    
-    // Poll every 2 seconds
-    const interval = setInterval(pollForPlayers, 2000);
-    
-    return () => clearInterval(interval);
+
+    // Load initial players
+    loadPlayers();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('players-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'players'
+        },
+        () => {
+          loadPlayers(); // Reload players when new ones join
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [pin]);
 
   useEffect(() => {

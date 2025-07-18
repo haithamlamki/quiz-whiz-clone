@@ -67,6 +67,8 @@ export type Database = {
           game_pin: string
           host_id: string
           id: string
+          is_active: boolean | null
+          players_data: Json | null
           quiz_id: string
           status: string | null
         }
@@ -77,6 +79,8 @@ export type Database = {
           game_pin: string
           host_id: string
           id?: string
+          is_active?: boolean | null
+          players_data?: Json | null
           quiz_id: string
           status?: string | null
         }
@@ -87,6 +91,8 @@ export type Database = {
           game_pin?: string
           host_id?: string
           id?: string
+          is_active?: boolean | null
+          players_data?: Json | null
           quiz_id?: string
           status?: string | null
         }
@@ -214,6 +220,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_player_to_game: {
+        Args: { p_game_pin: string; p_player_name: string }
+        Returns: {
+          game_id: string
+          player_id: string
+          success: boolean
+          message: string
+        }[]
+      }
+      generate_game_pin: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       increment_player_score: {
         Args: { player_id_in: string; score_to_add: number }
         Returns: undefined

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,44 +6,106 @@ import { Label } from '@/components/ui/label';
 import Logo from '@/components/Logo';
 import { Users, ArrowLeft, Gamepad2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function JoinGame() {
   const navigate = useNavigate();
   const { pin } = useParams();
+  const { toast } = useToast();
   const [playerName, setPlayerName] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [gameInfo, setGameInfo] = useState<any>(null);
+  const [quizInfo, setQuizInfo] = useState<any>(null);
+
+  // Load game info when component mounts
+  useEffect(() => {
+    const loadGameInfo = async () => {
+      if (!pin) return;
+      
+      try {
+        // Check if game exists
+        const { data: game, error: gameError } = await supabase
+          .from('games')
+          .select('id, quiz_id, status')
+          .eq('game_pin', pin)
+          .eq('is_active', true)
+          .single();
+
+        if (gameError || !game) {
+          console.error('Game not found:', gameError);
+          return;
+        }
+
+        setGameInfo(game);
+
+        // Load quiz info
+        const { data: quiz } = await supabase
+          .from('quizzes')
+          .select('title, description')
+          .eq('id', game.quiz_id)
+          .single();
+
+        if (quiz) {
+          setQuizInfo(quiz);
+        }
+
+        // Load questions count
+        const { count } = await supabase
+          .from('questions')
+          .select('*', { count: 'exact', head: true })
+          .eq('quiz_id', game.quiz_id);
+
+        if (quiz && count !== null) {
+          setQuizInfo({ ...quiz, questionsCount: count });
+        }
+      } catch (error) {
+        console.error('Error loading game info:', error);
+      }
+    };
+
+    loadGameInfo();
+  }, [pin]);
 
   const handleJoinGame = async () => {
     if (!playerName.trim()) return;
     
     setIsJoining(true);
     
-    // First check if game session exists (this is the primary way to find the game)
-    const gameSessionString = localStorage.getItem(`game_${pin}`);
-    if (!gameSessionString) {
-      alert('Game not found. Please check the PIN.');
-      setIsJoining(false);
-      return;
-    }
-    
     try {
-      const gameSession = JSON.parse(gameSessionString);
-      const playerId = 'player-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      
-      const newPlayer = {
-        id: playerId,
-        name: playerName.trim(),
-        joinedAt: Date.now()
-      };
-      
-      // Check if player name already exists
-      const existingPlayer = gameSession.players.find(p => p.name === playerName.trim());
-      if (!existingPlayer) {
-        gameSession.players.push(newPlayer);
-        localStorage.setItem(`game_${pin}`, JSON.stringify(gameSession));
-        console.log('Player joined game session:', newPlayer);
+      // Call the add_player_to_game function
+      const { data, error } = await supabase.rpc('add_player_to_game', {
+        p_game_pin: pin,
+        p_player_name: playerName.trim()
+      });
+
+      if (error) {
+        console.error('Error joining game:', error);
+        toast({
+          title: "Error",
+          description: "Failed to join game. Please try again.",
+          variant: "destructive"
+        });
+        setIsJoining(false);
+        return;
       }
-      
+
+      const result = data[0];
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive"
+        });
+        setIsJoining(false);
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: "Joined game successfully!",
+      });
+
       // Redirect to lobby
       setTimeout(() => {
         navigate(`/lobby/${pin}/${encodeURIComponent(playerName)}`);
@@ -51,7 +113,11 @@ export default function JoinGame() {
       
     } catch (error) {
       console.error('Error joining game:', error);
-      alert('Error joining game. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to join game. Please try again.",
+        variant: "destructive"
+      });
       setIsJoining(false);
     }
   };
@@ -140,49 +206,28 @@ export default function JoinGame() {
           <Card className="mt-6 bg-white/80 backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                {(() => {
-                  let quizId = localStorage.getItem(`pin_${pin}`);
-                  
-                  // Fallback: search through all quizzes if direct mapping doesn't exist
-                  if (!quizId) {
-                    const allKeys = Object.keys(localStorage);
-                    const quizKeys = allKeys.filter(key => key.startsWith('quiz_'));
-                    
-                    for (const key of quizKeys) {
-                      try {
-                        const quizData = JSON.parse(localStorage.getItem(key) || '{}');
-                        if (quizData.pin === pin) {
-                          quizId = key.replace('quiz_', '');
-                          break;
-                        }
-                      } catch (error) {
-                        console.error('Error parsing quiz data:', error);
-                      }
-                    }
-                  }
-                  
-                  const quizData = quizId ? JSON.parse(localStorage.getItem(`quiz_${quizId}`) || '{}') : null;
-                  
-                  if (quizData && quizData.title) {
-                    return (
-                      <>
-                        <h3 className="font-semibold">Game: {quizData.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {quizData.questions?.length || 0} questions • Mixed topics • Timed questions
-                        </p>
-                      </>
-                    );
-                  } else {
-                    return (
-                      <>
-                        <h3 className="font-semibold">Game: General Knowledge Quiz</h3>
-                        <p className="text-sm text-muted-foreground">
-                          15 questions • Mixed topics • 20 seconds per question
-                        </p>
-                      </>
-                    );
-                  }
-                })()}
+                {gameInfo ? (
+                  <>
+                    <h3 className="font-semibold">
+                      Game: {quizInfo?.title || 'Quiz Game'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {quizInfo?.questionsCount || 0} questions • Mixed topics • Timed questions
+                    </p>
+                    {quizInfo?.description && (
+                      <p className="text-xs text-muted-foreground">
+                        {quizInfo.description}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-semibold">Loading game info...</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Please wait while we fetch game details
+                    </p>
+                  </>
+                )}
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>Waiting for players...</span>
