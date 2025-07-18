@@ -109,6 +109,13 @@ export default function CreateQuiz() {
       
       // Save quiz to Supabase
       const tempHostId = crypto.randomUUID();
+      console.log('Attempting to save quiz with data:', {
+        id: quizId,
+        title: quizTitle.trim(),
+        description: quizDescription.trim(),
+        user_id: tempHostId
+      });
+      
       const { error: quizError } = await supabase
         .from('quizzes')
         .insert({
@@ -119,7 +126,8 @@ export default function CreateQuiz() {
         });
 
       if (quizError) {
-        throw new Error('Failed to save quiz to database');
+        console.error('Quiz creation error:', quizError);
+        throw new Error(`Failed to save quiz: ${quizError.message}`);
       }
 
       // Save questions to Supabase
@@ -140,12 +148,15 @@ export default function CreateQuiz() {
         time_limit: q.timeLimit || 20
       }));
 
+      console.log('Attempting to save questions:', questionsData);
+      
       const { error: questionsError } = await supabase
         .from('questions')
         .insert(questionsData);
 
       if (questionsError) {
-        throw new Error('Failed to save questions to database');
+        console.error('Questions creation error:', questionsError);
+        throw new Error(`Failed to save questions: ${questionsError.message}`);
       }
 
       // Store additional metadata in localStorage for compatibility
