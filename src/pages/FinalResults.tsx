@@ -46,6 +46,7 @@ export default function FinalResults() {
   const [error, setError] = useState<string | null>(null);
   const [detailedResults, setDetailedResults] = useState<DetailedPlayerResult[]>([]);
   const [questions, setQuestions] = useState<QuestionData[]>([]);
+  const [isHost, setIsHost] = useState<boolean>(false);
 
   useEffect(() => {
     const loadFinalResults = async () => {
@@ -62,6 +63,7 @@ export default function FinalResults() {
           .select(`
             id,
             quiz_id,
+            host_id,
             quizzes (
               title,
               description,
@@ -80,6 +82,10 @@ export default function FinalResults() {
           setLoading(false);
           return;
         }
+
+        // Check if current user is the host
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsHost(user?.id === gameInfo.host_id);
 
         // Get all players with their detailed answers
         const { data: playersData, error: playersError } = await supabase
@@ -563,17 +569,49 @@ export default function FinalResults() {
             </CardContent>
           </Card>
 
-          {/* Action Buttons - Only Join New Game for players */}
-          <div className="flex justify-center">
-            <Button 
-              variant="game" 
-              size="lg"
-              onClick={() => navigate('/')}
-              className="bg-primary hover:bg-primary/90 text-white px-8 py-3"
-            >
-              <Home className="h-5 w-5 mr-2" />
-              Join New Game
-            </Button>
+          {/* Action Buttons - Different for hosts vs players */}
+          <div className="flex justify-center gap-4 flex-wrap">
+            {isHost ? (
+              // Host buttons
+              <>
+                <Button 
+                  variant="game" 
+                  size="lg"
+                  onClick={generatePDF}
+                  disabled={!gameData || !questions.length}
+                >
+                  <Download className="h-5 w-5" />
+                  Download PDF Report
+                </Button>
+                <Button 
+                  variant="game" 
+                  size="lg"
+                  onClick={() => navigate('/')}
+                >
+                  <Home className="h-5 w-5" />
+                  Home
+                </Button>
+                <Button 
+                  variant="game" 
+                  size="lg"
+                  onClick={() => navigate('/create')}
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  Create New Quiz
+                </Button>
+              </>
+            ) : (
+              // Player button
+              <Button 
+                variant="game" 
+                size="lg"
+                onClick={() => navigate('/')}
+                className="bg-primary hover:bg-primary/90 text-white px-8 py-3"
+              >
+                <Home className="h-5 w-5 mr-2" />
+                Join New Game
+              </Button>
+            )}
           </div>
         </div>
       </div>
