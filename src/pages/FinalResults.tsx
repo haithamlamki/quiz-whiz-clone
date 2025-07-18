@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, Award, Home, RotateCcw, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Award, Home, RotateCcw, Loader2, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import jsPDF from 'jspdf';
 
 interface PlayerResult {
   rank: number;
@@ -16,6 +17,21 @@ interface PlayerResult {
 interface GameData {
   quiz_title: string;
   total_questions: number;
+  quiz_description?: string;
+}
+
+interface QuestionData {
+  id: string;
+  question_text: string;
+  options: { text: string; correct: boolean }[];
+}
+
+interface DetailedPlayerResult extends PlayerResult {
+  answers: {
+    question_id: string;
+    is_correct: boolean;
+    time_taken_ms: number;
+  }[];
 }
 
 export default function FinalResults() {
@@ -26,6 +42,8 @@ export default function FinalResults() {
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailedResults, setDetailedResults] = useState<DetailedPlayerResult[]>([]);
+  const [questions, setQuestions] = useState<QuestionData[]>([]);
 
   useEffect(() => {
     const loadFinalResults = async () => {
@@ -36,7 +54,7 @@ export default function FinalResults() {
       }
 
       try {
-        // Get game and quiz info
+        // Get game and quiz info with detailed questions
         const { data: gameInfo, error: gameError } = await supabase
           .from('games')
           .select(`
@@ -44,7 +62,12 @@ export default function FinalResults() {
             quiz_id,
             quizzes (
               title,
-              questions (id)
+              description,
+              questions (
+                id,
+                question_text,
+                options
+              )
             )
           `)
           .eq('game_pin', pin)
@@ -56,7 +79,7 @@ export default function FinalResults() {
           return;
         }
 
-        // Get all players with their answers
+        // Get all players with their detailed answers
         const { data: playersData, error: playersError } = await supabase
           .from('players')
           .select(`
@@ -64,6 +87,7 @@ export default function FinalResults() {
             name,
             score,
             answers (
+              question_id,
               is_correct,
               time_taken_ms
             )
@@ -93,9 +117,32 @@ export default function FinalResults() {
           };
         });
 
+        // Process detailed results for PDF
+        const processedDetailedResults: DetailedPlayerResult[] = (playersData || []).map((player, index) => ({
+          rank: index + 1,
+          name: player.name,
+          score: player.score || 0,
+          correctAnswers: player.answers?.filter(a => a.is_correct).length || 0,
+          avgTime: player.answers?.length 
+            ? Number((player.answers.reduce((sum, a) => sum + (a.time_taken_ms || 0), 0) / player.answers.length / 1000).toFixed(1))
+            : 0,
+          answers: player.answers || []
+        }));
+
         setResults(processedResults);
+        setDetailedResults(processedDetailedResults);
+        
+        // Type-safe question processing
+        const questionData: QuestionData[] = (gameInfo.quizzes?.questions || []).map(q => ({
+          id: q.id,
+          question_text: q.question_text,
+          options: Array.isArray(q.options) ? q.options as { text: string; correct: boolean }[] : []
+        }));
+        
+        setQuestions(questionData);
         setGameData({
           quiz_title: gameInfo.quizzes?.title || 'Quiz',
+          quiz_description: gameInfo.quizzes?.description || '',
           total_questions: gameInfo.quizzes?.questions?.length || 0
         });
         setLoading(false);
@@ -126,6 +173,115 @@ export default function FinalResults() {
       case 3: return 'bg-gradient-to-r from-orange-400 to-orange-600';
       default: return 'bg-gradient-to-r from-gray-100 to-gray-300';
     }
+  };
+
+  const generatePDF = () => {
+    if (!gameData || !questions.length) return;
+
+    const doc = new jsPDF();
+    let yPosition = 20;
+    
+    // Title
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text(gameData.quiz_title, 20, yPosition);
+    yPosition += 15;
+    
+    // Game info
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Game PIN: ${pin}`, 20, yPosition);
+    yPosition += 10;
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, yPosition);
+    yPosition += 10;
+    
+    if (gameData.quiz_description) {
+      doc.text(`Description: ${gameData.quiz_description}`, 20, yPosition);
+      yPosition += 15;
+    }
+    
+    // Summary statistics
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Quiz Summary', 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Total Players: ${results.length}`, 20, yPosition);
+    yPosition += 8;
+    doc.text(`Total Questions: ${gameData.total_questions}`, 20, yPosition);
+    yPosition += 8;
+    const avgAccuracy = results.length > 0 && gameData?.total_questions ? 
+      Math.round((results.reduce((acc, p) => acc + p.correctAnswers, 0) / (results.length * gameData.total_questions)) * 100) : 0;
+    doc.text(`Overall Accuracy: ${avgAccuracy}%`, 20, yPosition);
+    yPosition += 20;
+    
+    // Leaderboard
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Final Leaderboard', 20, yPosition);
+    yPosition += 15;
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    results.forEach((player, index) => {
+      if (yPosition > 260) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      const rankText = `${player.rank}. ${player.name}`;
+      const scoreText = `Score: ${player.score.toLocaleString()}`;
+      const accuracyText = `Correct: ${player.correctAnswers}/${gameData.total_questions}`;
+      const timeText = `Avg Time: ${player.avgTime}s`;
+      
+      doc.setFont(undefined, 'bold');
+      doc.text(rankText, 20, yPosition);
+      doc.setFont(undefined, 'normal');
+      doc.text(scoreText, 120, yPosition);
+      yPosition += 8;
+      doc.text(accuracyText, 30, yPosition);
+      doc.text(timeText, 120, yPosition);
+      yPosition += 12;
+    });
+    
+    // Questions and correct answers
+    if (questions.length > 0) {
+      doc.addPage();
+      yPosition = 20;
+      
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      doc.text('Quiz Questions & Answers', 20, yPosition);
+      yPosition += 20;
+      
+      questions.forEach((question, index) => {
+        if (yPosition > 240) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Q${index + 1}: ${question.question_text}`, 20, yPosition);
+        yPosition += 12;
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        question.options.forEach((option, optIndex) => {
+          const prefix = option.correct ? '✓' : '  ';
+          const text = `${prefix} ${String.fromCharCode(65 + optIndex)}. ${option.text}`;
+          doc.text(text, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 8;
+      });
+    }
+    
+    // Save the PDF
+    const fileName = `${gameData.quiz_title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results_${pin}.pdf`;
+    doc.save(fileName);
   };
 
   if (loading) {
@@ -291,7 +447,16 @@ export default function FinalResults() {
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 flex-wrap">
+            <Button 
+              variant="game" 
+              size="lg"
+              onClick={generatePDF}
+              disabled={!gameData || !questions.length}
+            >
+              <Download className="h-5 w-5" />
+              Download PDF Report
+            </Button>
             <Button 
               variant="game" 
               size="lg"
