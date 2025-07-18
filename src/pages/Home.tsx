@@ -116,8 +116,8 @@ export default function Home() {
                 Featured Quizzes
               </h2>
               <Button 
-                variant="cta" 
-                size="lg" 
+                variant="game" 
+                size="hero" 
                 onClick={() => navigate('/discover')}
               >
                 <Search className="h-5 w-5 mr-2" />
