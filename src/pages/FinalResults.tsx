@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Medal, Award, Home, RotateCcw, Loader2, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface PlayerResult {
   rank: number;
@@ -178,109 +179,114 @@ export default function FinalResults() {
   const generatePDF = () => {
     if (!gameData || !questions.length) return;
 
-    const doc = new jsPDF();
-    let yPosition = 20;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // 1. Add logo in header (left side) - placeholder for now
+    // Logo would go here when available
     
-    // Title
-    doc.setFontSize(20);
-    doc.setFont(undefined, 'bold');
-    doc.text(gameData.quiz_title, 20, yPosition);
-    yPosition += 15;
-    
-    // Game info
+    // 2. Centered report title
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text(gameData.quiz_title || 'Quiz Report', pageWidth / 2, 50, { align: 'center' });
+
+    // 3. Report date (right side)
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const dateStr = new Date().toLocaleDateString();
+    doc.text(`Report Date: ${dateStr}`, pageWidth - 40, 35, { align: 'right' });
+
+    // 4. Draw separator line under header
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(40, 65, pageWidth - 40, 65);
+
+    // 5. Test information section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Quiz Information:', 40, 90);
+
     doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Game PIN: ${pin}`, 20, yPosition);
-    yPosition += 10;
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, yPosition);
-    yPosition += 10;
-    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Title: ${gameData.quiz_title}`, 50, 110);
+    doc.text(`Game PIN: ${pin}`, 50, 130);
     if (gameData.quiz_description) {
-      doc.text(`Description: ${gameData.quiz_description}`, 20, yPosition);
-      yPosition += 15;
+      doc.text(`Description: ${gameData.quiz_description}`, 50, 150);
     }
-    
-    // Summary statistics
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('Quiz Summary', 20, yPosition);
-    yPosition += 15;
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Total Players: ${results.length}`, 20, yPosition);
-    yPosition += 8;
-    doc.text(`Total Questions: ${gameData.total_questions}`, 20, yPosition);
-    yPosition += 8;
-    const avgAccuracy = results.length > 0 && gameData?.total_questions ? 
-      Math.round((results.reduce((acc, p) => acc + p.correctAnswers, 0) / (results.length * gameData.total_questions)) * 100) : 0;
-    doc.text(`Overall Accuracy: ${avgAccuracy}%`, 20, yPosition);
-    yPosition += 20;
-    
-    // Leaderboard
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('Final Leaderboard', 20, yPosition);
-    yPosition += 15;
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    results.forEach((player, index) => {
-      if (yPosition > 260) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      
-      const rankText = `${player.rank}. ${player.name}`;
-      const scoreText = `Score: ${player.score.toLocaleString()}`;
-      const accuracyText = `Correct: ${player.correctAnswers}/${gameData.total_questions}`;
-      const timeText = `Avg Time: ${player.avgTime}s`;
-      
-      doc.setFont(undefined, 'bold');
-      doc.text(rankText, 20, yPosition);
-      doc.setFont(undefined, 'normal');
-      doc.text(scoreText, 120, yPosition);
-      yPosition += 8;
-      doc.text(accuracyText, 30, yPosition);
-      doc.text(timeText, 120, yPosition);
-      yPosition += 12;
-    });
-    
-    // Questions and correct answers
-    if (questions.length > 0) {
-      doc.addPage();
-      yPosition = 20;
-      
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text('Quiz Questions & Answers', 20, yPosition);
-      yPosition += 20;
-      
-      questions.forEach((question, index) => {
-        if (yPosition > 240) {
-          doc.addPage();
-          yPosition = 20;
+
+    // 6. Questions and answers table with correct answers highlighted
+    const questionRows = questions.map((q, i) => [
+      i + 1,
+      q.question_text,
+      q.options.map((ans) =>
+        ans.correct ? `✔️ ${ans.text}` : ans.text
+      ).join('\n'),
+    ]);
+
+    (doc as any).autoTable({
+      startY: 170,
+      head: [['#', 'Question', 'Answers']],
+      body: questionRows,
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [22, 160, 133] }, // Distinctive header color
+      columnStyles: {
+        0: { cellWidth: 20, halign: 'center' },
+        1: { cellWidth: 220 },
+        2: { cellWidth: 250 },
+      },
+      didParseCell: (data: any) => {
+        if (data.column.index === 2) {
+          const correctAnswers = questions[data.row.index].options.filter(opt => opt.correct);
+          if (correctAnswers.some(correct => data.cell.text.includes(`✔️ ${correct.text}`))) {
+            data.cell.styles.textColor = [39, 174, 96]; // Green for correct answers
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
-        
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text(`Q${index + 1}: ${question.question_text}`, 20, yPosition);
-        yPosition += 12;
-        
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'normal');
-        question.options.forEach((option, optIndex) => {
-          const prefix = option.correct ? '✓' : '  ';
-          const text = `${prefix} ${String.fromCharCode(65 + optIndex)}. ${option.text}`;
-          doc.text(text, 25, yPosition);
-          yPosition += 8;
-        });
-        yPosition += 8;
+      },
+    });
+
+    // 7. Leaderboard table
+    const startY = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Leaderboard:', 40, startY);
+
+    const resultRows = results.map((r, i) => [
+      i + 1,
+      r.name,
+      r.score,
+      `${r.correctAnswers}/${gameData.total_questions}`,
+      `${r.avgTime}s`
+    ]);
+
+    (doc as any).autoTable({
+      startY: startY + 10,
+      head: [['#', 'Player Name', 'Score', 'Correct', 'Avg Time']],
+      body: resultRows,
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [22, 160, 133] },
+      alternateRowStyles: { fillColor: [240, 248, 255] }, // Alternate row shading
+      columnStyles: {
+        0: { cellWidth: 20, halign: 'center' },
+        1: { cellWidth: 200 },
+        2: { cellWidth: 80, halign: 'center' },
+        3: { cellWidth: 80, halign: 'center' },
+        4: { cellWidth: 80, halign: 'center' },
+      },
+    });
+
+    // 8. Page numbering
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, (doc as any).internal.pageSize.getHeight() - 10, {
+        align: 'center',
       });
     }
-    
-    // Save the PDF
-    const fileName = `${gameData.quiz_title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results_${pin}.pdf`;
+
+    // 9. Save and download PDF
+    const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}.pdf`;
     doc.save(fileName);
   };
 
