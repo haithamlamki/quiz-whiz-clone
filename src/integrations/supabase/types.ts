@@ -65,7 +65,7 @@ export type Database = {
           current_question_index: number | null
           ended_at: string | null
           game_pin: string
-          host_id: string
+          host_id: string | null
           id: string
           is_active: boolean | null
           players_data: Json | null
@@ -77,7 +77,7 @@ export type Database = {
           current_question_index?: number | null
           ended_at?: string | null
           game_pin: string
-          host_id: string
+          host_id?: string | null
           id?: string
           is_active?: boolean | null
           players_data?: Json | null
@@ -89,7 +89,7 @@ export type Database = {
           current_question_index?: number | null
           ended_at?: string | null
           game_pin?: string
-          host_id?: string
+          host_id?: string | null
           id?: string
           is_active?: boolean | null
           players_data?: Json | null
