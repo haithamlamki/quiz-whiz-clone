@@ -13,6 +13,7 @@ import GameResults from "./pages/GameResults";
 import GameLobby from "./pages/GameLobby";
 import HostDashboard from "./pages/HostDashboard";
 import FinalResults from "./pages/FinalResults";
+import DiscoverQuizzes from "./pages/DiscoverQuizzes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/discover" element={<DiscoverQuizzes />} />
             <Route path="/create" element={<CreateQuiz />} />
             <Route path="/quiz-saved/:quizId" element={<QuizSaved />} />
             <Route path="/join/:pin" element={<JoinGame />} />

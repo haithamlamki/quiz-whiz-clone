@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { GameCard } from '@/components/GameCard';
 import { NavigationBar } from '@/components/NavigationBar';
-import { Play, Plus, Users, Zap } from 'lucide-react';
+import { Play, Plus, Users, Zap, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Sample quiz data
@@ -111,9 +111,20 @@ export default function Home() {
 
           {/* Featured Quizzes */}
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-display font-bold tracking-tight text-white text-center mb-8 text-3d">
-              Featured Quizzes
-            </h2>
+            <div className="text-center mb-8">
+              <h2 className="text-display font-bold tracking-tight text-white text-3d mb-4">
+                Featured Quizzes
+              </h2>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={() => navigate('/discover')}
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm"
+              >
+                <Search className="h-5 w-5 mr-2" />
+                Discover More Quizzes
+              </Button>
+            </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sampleQuizzes.map(quiz => <GameCard key={quiz.id} title={quiz.title} description={quiz.description} playerCount={quiz.playerCount} duration={quiz.duration} onPlay={() => handlePlayQuiz(quiz.id)} />)}
             </div>
