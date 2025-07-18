@@ -86,6 +86,19 @@ export default function HostDashboard() {
         // ALWAYS store PIN mapping - this is critical for joining to work
         localStorage.setItem(`pin_${currentPin}`, quizId);
         
+        // Create game session for this PIN
+        const gameSession = {
+          pin: currentPin,
+          quizId: quizId,
+          hostId: 'host-1', // In real app, this would be the authenticated user ID
+          status: 'lobby',
+          players: [],
+          currentQuestion: 0,
+          createdAt: Date.now()
+        };
+        localStorage.setItem(`game_${currentPin}`, JSON.stringify(gameSession));
+        console.log('Host: Created game session for PIN:', currentPin);
+        
         // Update quiz data if PIN was missing
         if (!quizData.pin) {
           quizData.pin = currentPin;
@@ -111,11 +124,60 @@ export default function HostDashboard() {
         };
         setQuiz(minimalQuiz);
         localStorage.setItem(`quiz_${quizId}`, JSON.stringify(minimalQuiz));
+        
+        // Create game session
+        const gameSession = {
+          pin: currentPin,
+          quizId: quizId,
+          hostId: 'host-1',
+          status: 'lobby',
+          players: [],
+          currentQuestion: 0,
+          createdAt: Date.now()
+        };
+        localStorage.setItem(`game_${currentPin}`, JSON.stringify(gameSession));
+        console.log('Host: Created game session for PIN (minimal):', currentPin);
       }
     }
   }, [quizId, setQuizBackground]);
 
   // Reset background when leaving this page
+  // Poll for new players joining
+  useEffect(() => {
+    if (!pin) return;
+    
+    const pollForPlayers = () => {
+      const gameSessionString = localStorage.getItem(`game_${pin}`);
+      if (gameSessionString) {
+        const gameSession = JSON.parse(gameSessionString);
+        if (gameSession.players && gameSession.players.length > 0) {
+          console.log('Host: Found players in game session:', gameSession.players);
+          // Convert the game session players to our players format
+          const sessionPlayers = gameSession.players.map((player, index) => ({
+            id: player.id,
+            name: player.name,
+            score: 0,
+            streak: 0,
+            answered: false,
+            isOnline: true,
+            joinedAt: player.joinedAt || Date.now(),
+            lastAnswerCorrect: false,
+            correctAnswers: 0
+          }));
+          setPlayers(sessionPlayers);
+        }
+      }
+    };
+    
+    // Initial check
+    pollForPlayers();
+    
+    // Poll every 2 seconds
+    const interval = setInterval(pollForPlayers, 2000);
+    
+    return () => clearInterval(interval);
+  }, [pin]);
+
   useEffect(() => {
     return () => resetBackground();
   }, [resetBackground]);

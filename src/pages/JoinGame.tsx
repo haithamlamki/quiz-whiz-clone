@@ -48,6 +48,27 @@ export default function JoinGame() {
       return;
     }
     
+    // Add player to game session
+    const gameSessionString = localStorage.getItem(`game_${pin}`);
+    if (gameSessionString) {
+      const gameSession = JSON.parse(gameSessionString);
+      const playerId = 'player-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      
+      const newPlayer = {
+        id: playerId,
+        name: playerName.trim(),
+        joinedAt: Date.now()
+      };
+      
+      // Check if player name already exists
+      const existingPlayer = gameSession.players.find(p => p.name === playerName.trim());
+      if (!existingPlayer) {
+        gameSession.players.push(newPlayer);
+        localStorage.setItem(`game_${pin}`, JSON.stringify(gameSession));
+        console.log('Player joined game session:', newPlayer);
+      }
+    }
+    
     // Simulate joining game and redirect to lobby
     setTimeout(() => {
       navigate(`/lobby/${pin}/${encodeURIComponent(playerName)}`);
