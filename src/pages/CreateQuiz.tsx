@@ -319,7 +319,7 @@ export default function CreateQuiz() {
                             type="file"
                             accept="image/*"
                             onChange={handleImageUpload}
-                            className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-cta-primary file:text-white hover:file:bg-cta-primary-hover"
+                            className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-gradient-primary file:text-white hover:file:bg-gradient-primary"
                           />
                           <Upload className="h-5 w-5 text-muted-foreground" />
                         </div>

@@ -347,7 +347,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleMediaUpload(e, 'image')}
-                className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-gradient-primary file:text-white hover:file:bg-gradient-primary"
               />
               {media?.type === 'image' && (
                 <img src={media.url} alt="Question media" className="w-full max-h-40 object-cover rounded-lg" />
@@ -359,7 +359,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 type="file"
                 accept="video/*"
                 onChange={(e) => handleMediaUpload(e, 'video')}
-                className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-gradient-primary file:text-white hover:file:bg-gradient-primary"
               />
               {media?.type === 'video' && (
                 <video src={media.url} controls className="w-full max-h-40 rounded-lg" />
