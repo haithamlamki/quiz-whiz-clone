@@ -186,7 +186,7 @@ export default function HostDashboard() {
               <div className="flex gap-3">
                 <PinGenerator onPinGenerated={(newPin) => {
                   setPin(newPin);
-                  // Update the quiz data with new PIN
+                  // Update the quiz data with new PIN and store mapping
                   if (quiz && quizId) {
                     const updatedQuiz = { ...quiz, pin: newPin };
                     setQuiz(updatedQuiz);
