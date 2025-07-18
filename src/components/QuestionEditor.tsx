@@ -96,7 +96,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
     existingQuestion?.type || 'multiple-choice'
   );
   const [question, setQuestion] = useState(existingQuestion?.question || '');
-  const [timeLimit, setTimeLimit] = useState(existingQuestion?.timeLimit || 3);
+  const [timeLimit, setTimeLimit] = useState(existingQuestion?.timeLimit || 6);
   const [points, setPoints] = useState(existingQuestion?.points || 1000);
   const [media, setMedia] = useState(existingQuestion?.media || null);
 
