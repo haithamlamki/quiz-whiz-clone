@@ -389,7 +389,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Answer Options</Label>
-              <Button variant="outline" size="sm" onClick={addAnswer}>
+              <Button variant="game" size="sm" onClick={addAnswer}>
                 <Plus className="h-4 w-4" />
                 Add Answer
               </Button>
@@ -416,7 +416,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     {correctAnswer === index ? 'Correct' : 'Mark'}
                   </Button>
                   {answers.length > 2 && (
-                    <Button variant="outline" size="sm" onClick={() => removeAnswer(index)}>
+                    <Button variant="game" size="sm" onClick={() => removeAnswer(index)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
@@ -450,7 +450,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Items to Order</Label>
-              <Button variant="outline" size="sm" onClick={addPuzzleItem}>
+              <Button variant="game" size="sm" onClick={addPuzzleItem}>
                 <Plus className="h-4 w-4" />
                 Add Item
               </Button>
@@ -487,7 +487,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Poll Options</Label>
-              <Button variant="outline" size="sm" onClick={addPollOption}>
+              <Button variant="game" size="sm" onClick={addPollOption}>
                 <Plus className="h-4 w-4" />
                 Add Option
               </Button>

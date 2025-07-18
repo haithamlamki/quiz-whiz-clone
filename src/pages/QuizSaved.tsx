@@ -236,14 +236,14 @@ export default function QuizSaved() {
                           <p className="text-sm font-medium text-muted-foreground">Game PIN</p>
                           <p className="text-3xl font-bold text-primary">{quiz.pin}</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={copyPin}>
+                        <Button variant="game" size="sm" onClick={copyPin}>
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
 
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={copyJoinUrl} className="flex-1">
+                      <Button variant="game" onClick={copyJoinUrl} className="flex-1">
                         <Share2 className="h-4 w-4 mr-2" />
                         Copy Join URL
                       </Button>
@@ -297,7 +297,7 @@ export default function QuizSaved() {
 
             {/* Navigation */}
             <div className="text-center mt-8">
-              <Button variant="outline" onClick={() => navigate('/')}>
+              <Button variant="game" onClick={() => navigate('/')}>
                 <Home className="h-4 w-4 mr-2" />
                 Create Another Quiz
               </Button>

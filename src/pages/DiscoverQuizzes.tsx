@@ -213,7 +213,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, onPlay }) => {
           </div>
         </div>
         
-        <Button variant="cta" size="cta" className="w-full" onClick={onPlay}>
+        <Button variant="game" size="hero" className="w-full" onClick={onPlay}>
           <Zap className="h-4 w-4" />
           Play Quiz
         </Button>
@@ -417,7 +417,7 @@ export default function DiscoverQuizzes() {
                   
                   {activeFiltersCount > 0 && (
                     <div className="col-span-2 md:col-span-4 pt-2">
-                      <Button variant="outline" onClick={clearAllFilters} size="sm">
+                      <Button variant="game" onClick={clearAllFilters} size="sm">
                         Clear All Filters
                       </Button>
                     </div>
@@ -475,7 +475,7 @@ export default function DiscoverQuizzes() {
                 <p className="text-muted-foreground mb-4">
                   Try adjusting your search terms or filters to discover more quizzes.
                 </p>
-                <Button variant="outline" onClick={clearAllFilters}>
+                <Button variant="game" onClick={clearAllFilters}>
                   Clear All Filters
                 </Button>
               </Card>

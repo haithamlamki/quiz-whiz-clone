@@ -345,7 +345,7 @@ export default function PlayGame() {
               <div className="text-4xl mb-4">❌</div>
               <h2 className="text-2xl font-bold mb-2">Game Error</h2>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={() => navigate('/')} variant="outline">
+              <Button onClick={() => navigate('/')} variant="game">
                 Go Home
               </Button>
             </CardContent>

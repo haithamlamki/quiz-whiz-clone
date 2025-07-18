@@ -532,11 +532,11 @@ export default function HostDashboard() {
                       {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
                       {isPaused ? 'Resume' : 'Pause'}
                     </Button>
-                    <Button variant="outline" onClick={showResults}>
+                    <Button variant="game" onClick={showResults}>
                       <Eye className="h-4 w-4" />
                       Show Results
                     </Button>
-                    <Button variant="outline" onClick={nextQuestion}>
+                    <Button variant="game" onClick={nextQuestion}>
                       <SkipForward className="h-4 w-4" />
                       Next
                     </Button>
@@ -634,7 +634,7 @@ export default function HostDashboard() {
                 </div>
                 
                 <div className="flex justify-center gap-4">
-                  <Button variant="outline" onClick={showLeaderboard}>
+                  <Button variant="game" onClick={showLeaderboard}>
                     <Trophy className="h-4 w-4" />
                     Show Leaderboard
                   </Button>

@@ -202,7 +202,7 @@ export const PinGenerator: React.FC<PinGeneratorProps> = ({
   };
 
   return (
-    <Button variant="outline" onClick={generatePin} className="flex items-center gap-2">
+    <Button variant="game" onClick={generatePin} className="flex items-center gap-2">
       <Users className="h-4 w-4" />
       Generate New PIN
     </Button>

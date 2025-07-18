@@ -40,12 +40,12 @@ export const GameCard: React.FC<GameCardProps> = ({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="cta" size="cta" className="flex-1" onClick={onPlay}>
+          <Button variant="game" size="hero" className="flex-1" onClick={onPlay}>
             <Trophy className="h-5 w-5" />
             Play Now
           </Button>
           {onEdit && (
-            <Button variant="cta-outline" size="default" onClick={onEdit}>
+            <Button variant="game" size="hero" onClick={onEdit}>
               Edit
             </Button>
           )}
