@@ -43,13 +43,7 @@ const sampleQuiz = {
   ]
 };
 
-// Sample players data - enhanced for live experience
-const samplePlayers = [
-  { id: '1', name: 'Player1', score: 2400, streak: 2, answered: true, isOnline: true, joinedAt: Date.now() - 60000, lastAnswerCorrect: true, correctAnswers: 3 },
-  { id: '2', name: 'Player2', score: 1800, streak: 1, answered: true, isOnline: true, joinedAt: Date.now() - 45000, lastAnswerCorrect: true, correctAnswers: 2 },
-  { id: '3', name: 'Player3', score: 1200, streak: 0, answered: false, isOnline: true, joinedAt: Date.now() - 30000, lastAnswerCorrect: false, correctAnswers: 1 },
-  { id: '4', name: 'Player4', score: 0, streak: 0, answered: false, isOnline: true, joinedAt: Date.now() - 15000, lastAnswerCorrect: false, correctAnswers: 0 },
-];
+// Remove sample players - only use real data from database
 
 export default function HostDashboard() {
   const { quizId } = useParams();
@@ -58,7 +52,7 @@ export default function HostDashboard() {
   const [gameState, setGameState] = useState<'lobby' | 'question' | 'results' | 'leaderboard'>('lobby');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
-  const [players, setPlayers] = useState(samplePlayers);
+  const [players, setPlayers] = useState([]);
   const [quiz, setQuiz] = useState<any>(null);
   const [pin, setPin] = useState('123456');
   const [isPaused, setIsPaused] = useState(false);
