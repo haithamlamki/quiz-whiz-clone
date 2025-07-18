@@ -331,7 +331,7 @@ export default function CreateQuiz() {
                               className="w-full h-32 object-cover rounded-xl border"
                             />
                             <Button 
-                              variant="outline" 
+                              variant="game" 
                               size="sm"
                               onClick={() => {
                                 setCustomBackground(null);
@@ -407,7 +407,7 @@ export default function CreateQuiz() {
               {editingQuestion && (
                 <div className="text-center">
                   <Button 
-                    variant="outline" 
+                    variant="game" 
                     onClick={() => setEditingQuestion(null)}
                   >
                     Cancel Edit
@@ -491,7 +491,7 @@ export default function CreateQuiz() {
           {/* Save Button */}
           <div className="text-center mt-8">
             <Button 
-              variant="cta" 
+              variant="game" 
               size="xl" 
               onClick={saveQuiz}
               disabled={!quizTitle || questions.length === 0}

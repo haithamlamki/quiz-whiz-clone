@@ -311,7 +311,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
             {questionTypes.map((qt) => (
               <Button
                 key={qt.type}
-                variant={questionType === qt.type ? 'cta' : 'outline'}
+                variant={questionType === qt.type ? 'game' : 'game'}
                 size="sm"
                 onClick={() => setQuestionType(qt.type)}
                 className="flex flex-col items-center gap-2 h-auto p-4"
@@ -409,7 +409,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     className={correctAnswer === index ? 'border-green-500' : ''}
                   />
                   <Button
-                    variant={correctAnswer === index ? 'cta' : 'outline'}
+                    variant={correctAnswer === index ? 'game' : 'game'}
                     size="sm"
                     onClick={() => setCorrectAnswer(index)}
                   >
@@ -431,13 +431,13 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
             <Label>Correct Answer</Label>
             <div className="flex items-center space-x-4">
               <Button
-                variant={trueFalseAnswer ? 'cta' : 'outline'}
+                variant={trueFalseAnswer ? 'game' : 'game'}
                 onClick={() => setTrueFalseAnswer(true)}
               >
                 True
               </Button>
               <Button
-                variant={!trueFalseAnswer ? 'cta' : 'outline'}
+                variant={!trueFalseAnswer ? 'game' : 'game'}
                 onClick={() => setTrueFalseAnswer(false)}
               >
                 False
@@ -470,7 +470,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   />
                   {puzzleItems.length > 1 && (
                     <Button 
-                      variant="outline" 
+                      variant="game" 
                       size="sm" 
                       onClick={() => setPuzzleItems(puzzleItems.filter((_, i) => i !== index))}
                     >
@@ -506,7 +506,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   />
                   {pollOptions.length > 2 && (
                     <Button 
-                      variant="outline" 
+                      variant="game" 
                       size="sm" 
                       onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== index))}
                     >
@@ -628,7 +628,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                     placeholder={`Sample answer ${index + 1}`}
                   />
                   <Button 
-                    variant="outline" 
+                    variant="game" 
                     size="sm" 
                     onClick={() => setSampleAnswers(sampleAnswers.filter((_, i) => i !== index))}
                   >
@@ -637,7 +637,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 </div>
               ))}
               <Button 
-                variant="outline" 
+                variant="game" 
                 size="sm" 
                 onClick={() => setSampleAnswers([...sampleAnswers, ''])}
               >
@@ -676,7 +676,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
         </div>
 
         <Button 
-          variant="cta" 
+          variant="game" 
           size="lg" 
           onClick={handleSubmit}
           disabled={!question.trim()}
