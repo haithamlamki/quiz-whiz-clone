@@ -3,8 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Leaderboard } from '@/components/Leaderboard';
+import { PlayerJoinNotification, PlayerCounter } from '@/components/PlayerJoinNotification';
+import { GamePinDisplay, PinGenerator } from '@/components/GamePinDisplay';
 import Logo from '@/components/Logo';
-import { Users, Play, SkipForward, Trophy, Clock, Eye } from 'lucide-react';
+import { Users, Play, SkipForward, Trophy, Clock, Eye, Settings, Pause } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 
 // Sample quiz data
@@ -39,17 +42,16 @@ const sampleQuiz = {
   ]
 };
 
-// Sample players data
+// Sample players data - enhanced for live experience
 const samplePlayers = [
-  { id: '1', name: 'Player1', score: 2400, streak: 2, answered: true },
-  { id: '2', name: 'Player2', score: 1800, streak: 1, answered: true },
-  { id: '3', name: 'Player3', score: 1200, streak: 0, answered: false },
-  { id: '4', name: 'Player4', score: 0, streak: 0, answered: false },
+  { id: '1', name: 'Player1', score: 2400, streak: 2, answered: true, isOnline: true, joinedAt: Date.now() - 60000, lastAnswerCorrect: true, correctAnswers: 3 },
+  { id: '2', name: 'Player2', score: 1800, streak: 1, answered: true, isOnline: true, joinedAt: Date.now() - 45000, lastAnswerCorrect: true, correctAnswers: 2 },
+  { id: '3', name: 'Player3', score: 1200, streak: 0, answered: false, isOnline: true, joinedAt: Date.now() - 30000, lastAnswerCorrect: false, correctAnswers: 1 },
+  { id: '4', name: 'Player4', score: 0, streak: 0, answered: false, isOnline: true, joinedAt: Date.now() - 15000, lastAnswerCorrect: false, correctAnswers: 0 },
 ];
 
 export default function HostDashboard() {
   const { quizId } = useParams();
-  const pin = '123456'; // This would come from the quiz data
   const navigate = useNavigate();
   const { getBackgroundStyle, resetBackground, setQuizBackground } = useQuizBackground();
   const [gameState, setGameState] = useState<'lobby' | 'question' | 'results' | 'leaderboard'>('lobby');
@@ -57,6 +59,8 @@ export default function HostDashboard() {
   const [timeLeft, setTimeLeft] = useState(20);
   const [players, setPlayers] = useState(samplePlayers);
   const [quiz, setQuiz] = useState<any>(null);
+  const [pin, setPin] = useState('123456');
+  const [isPaused, setIsPaused] = useState(false);
 
   // Load quiz data and set background
   useEffect(() => {
@@ -84,11 +88,11 @@ export default function HostDashboard() {
   const answerProgress = (answeredCount / players.length) * 100;
 
   useEffect(() => {
-    if (gameState === 'question' && timeLeft > 0) {
+    if (gameState === 'question' && timeLeft > 0 && !isPaused) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     }
-  }, [gameState, timeLeft]);
+  }, [gameState, timeLeft, isPaused]);
 
   const startGame = () => {
     setGameState('question');
@@ -122,8 +126,10 @@ export default function HostDashboard() {
   if (gameState === 'lobby') {
     return (
       <div className="min-h-screen" style={getBackgroundStyle()}>
+        <PlayerJoinNotification players={players} />
+        
         {/* Header */}
-        <header className="bg-gradient-to-r from-primary to-primary/80 shadow-lg">
+        <header className="bg-gradient-to-r from-primary to-primary/80 shadow-lg backdrop-blur-sm">
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
               {/* Title */}
@@ -132,90 +138,111 @@ export default function HostDashboard() {
                 <h1 className="text-2xl font-bold text-white">{quiz?.title || 'Abraj Quiz'}</h1>
               </div>
               
-              {/* Game PIN */}
-              <div className="text-center">
+              {/* Game PIN Badge */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2">
                 <p className="text-white/80 text-sm">Game PIN</p>
-                <p className="text-3xl font-bold text-white">{quiz?.pin || pin}</p>
+                <p className="text-2xl font-bold text-white">{pin}</p>
               </div>
               
-              {/* Action Buttons */}
+              {/* Settings */}
               <div className="flex gap-3">
-                <button
+                <PinGenerator onPinGenerated={setPin} />
+                <Button
+                  variant="outline"
                   onClick={() => navigate('/create')}
-                  className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-semibold transition-colors"
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
                 >
-                  Manage Questions
-                </button>
-                <button
-                  onClick={startGame}
-                  className="px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-semibold transition-colors"
-                >
-                  Start Game
-                </button>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Edit Quiz
+                </Button>
               </div>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
-          {/* QR Code and Game PIN Section */}
-          <div className="text-center mb-8">
-            {/* QR Code Placeholder */}
-            <div className="bg-white p-6 rounded-lg shadow-lg mb-6 inline-block">
-              <div className="w-48 h-48 bg-black rounded-lg flex items-center justify-center mb-4">
-                <div className="text-white text-xs grid grid-cols-8 gap-1">
-                  {Array.from({ length: 64 }, (_, i) => (
-                    <div key={i} className={`w-2 h-2 ${Math.random() > 0.5 ? 'bg-white' : 'bg-black'}`} />
-                  ))}
-                </div>
-              </div>
-              <p className="text-cyan-500 font-semibold">Scan QR to join</p>
-              
-              {/* Game PIN - moved under QR code */}
-              <div className="bg-primary text-white px-8 py-4 rounded-lg text-4xl font-bold mt-4 inline-block shadow-lg">
-                {quiz?.pin || pin}
-              </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Left Column: Game PIN & QR */}
+            <div className="lg:col-span-1">
+              <GamePinDisplay 
+                pin={pin}
+                animated={true}
+                className="sticky top-4"
+              />
             </div>
 
-            {/* Copy Join Link Button */}
-            <button 
-              onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/join/${quiz?.pin || pin}`)}
-              className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/80 font-semibold transition-colors block mx-auto mb-8"
-            >
-              Copy Join Link
-            </button>
+            {/* Right Column: Players & Controls */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Player Counter */}
+              <PlayerCounter 
+                players={players}
+                maxPlayers={50}
+                showOnlineStatus={true}
+              />
 
-            {/* Waiting Text */}
-            <h2 className="text-2xl font-bold text-white mb-8">Waiting for players to join</h2>
-          </div>
+              {/* Connected Players Grid */}
+              <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Connected Players ({players.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {players.map((player, index) => (
+                      <div 
+                        key={player.id} 
+                        className="bg-gradient-to-r from-primary/10 to-primary/20 text-primary px-3 py-2 rounded-lg font-semibold text-center animate-slide-up border border-primary/20"
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${player.isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+                          {player.name}
+                        </div>
+                      </div>
+                    ))}
+                    {players.length === 0 && (
+                      <div className="col-span-full text-center py-8">
+                        <div className="text-4xl mb-2">🎮</div>
+                        <p className="text-muted-foreground">Waiting for players to join...</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Share the PIN or QR code with your players!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Connected Players Section */}
-          <div className="bg-gray-800/80 rounded-lg p-6 w-full max-w-2xl">
-            <h3 className="text-cyan-400 text-lg font-semibold mb-4">Connected Players:</h3>
-            <div className="flex flex-wrap gap-3">
-              {players.map((player) => (
-                <div 
-                  key={player.id} 
-                  className="bg-cyan-500 text-white px-4 py-2 rounded-lg font-semibold"
-                >
-                  {player.name}
-                </div>
-              ))}
-              {players.length === 0 && (
-                <p className="text-gray-400">No players connected yet...</p>
-              )}
+              {/* Game Controls */}
+              <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Ready to start?</h3>
+                      <p className="text-muted-foreground">
+                        {players.length > 0 
+                          ? `${players.length} player${players.length !== 1 ? 's' : ''} waiting to play!`
+                          : 'Waiting for players to join...'
+                        }
+                      </p>
+                    </div>
+                    <Button
+                      onClick={startGame}
+                      disabled={players.length === 0}
+                      size="lg"
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 text-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-pulse-glow"
+                    >
+                      <Play className="h-5 w-5 mr-2" />
+                      Start Game
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
-
-          {/* Start Button */}
-          <button
-            onClick={startGame}
-            disabled={players.length === 0}
-            className="bg-cyan-500 text-white px-12 py-4 rounded-lg text-xl font-bold hover:bg-cyan-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors mt-8"
-          >
-            Start
-          </button>
         </div>
       </div>
     );
@@ -248,6 +275,14 @@ export default function HostDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsPaused(!isPaused)}
+                      disabled={timeLeft === 0}
+                    >
+                      {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                      {isPaused ? 'Resume' : 'Pause'}
+                    </Button>
                     <Button variant="outline" onClick={showResults}>
                       <Eye className="h-4 w-4" />
                       Show Results
@@ -287,27 +322,22 @@ export default function HostDashboard() {
               </CardContent>
             </Card>
 
-            {/* Live Player Stats */}
+            {/* Enhanced Live Player Stats with Leaderboard */}
             <Card className="bg-white/95 backdrop-blur-sm shadow-game">
               <CardHeader>
-                <CardTitle>Live Results</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Live Leaderboard</span>
+                  <div className="text-sm text-muted-foreground">
+                    {answeredCount}/{players.length} answered
+                  </div>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {players.map((player) => (
-                    <div 
-                      key={player.id} 
-                      className={`p-3 rounded-lg border-2 ${
-                        player.answered ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'
-                      }`}
-                    >
-                      <div className="font-semibold">{player.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {player.answered ? '✓ Answered' : 'Thinking...'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Leaderboard 
+                  players={players}
+                  currentQuestionNumber={currentQuestionIndex + 1}
+                  totalQuestions={quiz?.questions?.length || sampleQuiz.questions.length}
+                />
               </CardContent>
             </Card>
           </div>
