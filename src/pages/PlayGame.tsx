@@ -18,6 +18,7 @@ interface Question {
     isCorrect: boolean;
   }[];
   time_limit: number;
+  points?: number;
 }
 
 interface Quiz {
@@ -123,7 +124,8 @@ export default function PlayGame() {
           questions: (quizData.questions || []).map((q: any) => ({
             id: q.id,
             question_text: q.question_text,
-            time_limit: q.time_limit || 20,
+            time_limit: q.time_limit || 6,
+            points: q.options?.points || 1000,
             options: q.options?.type === 'true-false'
               ? [
                   { text: 'True', isCorrect: q.options.correctAnswer === true },
@@ -221,6 +223,8 @@ export default function PlayGame() {
             setShowResult(false);
             setGameState('question');
             setQuestionStartTime(Date.now());
+            // Reset timer state for new question
+            setSoundTrigger(null);
           }
         }
       )
@@ -264,7 +268,9 @@ export default function PlayGame() {
     // Find correct answer index
     const correctAnswerIndex = currentQuestion.options.findIndex(option => option.isCorrect);
     const isCorrect = selectedAnswer === correctAnswerIndex;
-    const basePoints = 1000; // Default points per question
+    
+    // Use dynamic points from question or default to 1000
+    const basePoints = currentQuestion.points || 1000;
     
     // Calculate score with speed bonus and streak multiplier
     if (isCorrect) {
@@ -272,6 +278,14 @@ export default function PlayGame() {
       const speedBonus = Math.max(0, currentQuestion.time_limit * 1000 - responseTime) / 100;
       const streakMultiplier = 1 + (streak * 0.1);
       const questionScore = Math.floor((basePoints + speedBonus) * streakMultiplier);
+      
+      console.log('Score calculation:', {
+        basePoints,
+        speedBonus,
+        streakMultiplier,
+        questionScore,
+        responseTime
+      });
       
       const newScore = score + questionScore;
       setScore(newScore);
@@ -302,7 +316,7 @@ export default function PlayGame() {
           player_id: player.id,
           question_id: currentQuestion.id,
           is_correct: isCorrect,
-          score_awarded: isCorrect ? basePoints : 0,
+          score_awarded: isCorrect ? (currentQuestion.points || 1000) : 0,
           time_taken_ms: responseTime
         });
     }
