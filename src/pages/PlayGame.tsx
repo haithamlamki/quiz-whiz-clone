@@ -425,64 +425,72 @@ export default function PlayGame() {
         </Button>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">{quiz?.title}</h1>
-            <div className="flex items-center justify-center gap-6 text-white/80">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span>PIN: {pin}</span>
+      {/* Main Game Container */}
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-7xl mx-auto">
+          
+          {/* Question Section - Top Center */}
+          <div className="flex flex-col items-center mb-12">
+            <Card className="w-full max-w-4xl bg-white shadow-xl rounded-lg animate-fade-in">
+              <CardContent className="p-8 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 font-montserrat leading-tight">
+                  {currentQuestion.question_text}
+                </h2>
+              </CardContent>
+            </Card>
+            
+            {/* Question Number */}
+            <div className="mt-4 text-white/90 text-lg font-semibold">
+              Question {currentQuestionIndex + 1} of {quiz?.questions.length || 0}
+            </div>
+          </div>
+
+          {/* Timer and Answer Count Row */}
+          <div className="flex justify-between items-center mb-12 px-8">
+            
+            {/* Timer Circle - Left */}
+            <div className="relative">
+              <div className="w-24 h-24 bg-[#5D2A8E] rounded-full flex items-center justify-center shadow-lg">
+                <div className="text-center">
+                  <Timer
+                    duration={currentQuestion.time_limit}
+                    onComplete={handleTimeUp}
+                    isActive={gameState === 'question' && !showResult}
+                    className="text-2xl font-bold text-white"
+                  />
+                  <div className="text-xs text-white/80">sec</div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
-                <span>{score.toLocaleString()} points</span>
+            </div>
+
+            {/* Player Info - Center */}
+            <div className="text-center text-white">
+              <div className="text-lg font-semibold mb-1">{decodeURIComponent(playerName || '')}</div>
+              <div className="flex items-center gap-2 justify-center">
+                <Trophy className="h-5 w-5" />
+                <span className="text-xl font-bold">{score.toLocaleString()}</span>
               </div>
               {streak > 0 && (
-                <div className="flex items-center gap-2 bg-orange-500/20 px-3 py-1 rounded-full">
+                <div className="mt-2 bg-orange-500/20 px-3 py-1 rounded-full inline-flex items-center gap-2">
                   <span className="text-orange-300">🔥</span>
-                  <span>{streak} streak</span>
+                  <span className="text-sm">{streak} streak</span>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Question Progress */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center text-white/80 text-sm mb-2">
-              <span>Question {currentQuestionIndex + 1} of {quiz?.questions.length || 0}</span>
-              <span>1000 points</span>
-            </div>
-            <div className="w-full bg-white/20 rounded-full h-2">
-              <div 
-                className="bg-white rounded-full h-2 transition-all duration-500"
-                style={{ width: `${quiz ? ((currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0}%` }}
-              />
+            {/* Answer Count Circle - Right */}
+            <div className="w-24 h-24 bg-[#5D2A8E] rounded-full flex items-center justify-center shadow-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">
+                  {currentQuestion.options.length}
+                </div>
+                <div className="text-xs text-white/80">answers</div>
+              </div>
             </div>
           </div>
 
-          {/* Timer */}
-          <div className="mb-8">
-            <Timer
-              duration={currentQuestion.time_limit}
-              onComplete={handleTimeUp}
-              isActive={gameState === 'question' && !showResult}
-              className="bg-white/10 backdrop-blur-sm p-4 rounded-xl"
-            />
-          </div>
-
-          {/* Question */}
-          <Card className="mb-8 bg-white/95 backdrop-blur-sm shadow-game">
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">
-                {currentQuestion.question_text}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-
-          {/* Answers */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          {/* Answer Buttons Grid - 2x2 Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
             {currentQuestion.options.map((option, index) => (
               <AnswerButton
                 key={index}
@@ -494,54 +502,57 @@ export default function PlayGame() {
                 showResult={showResult}
                 onClick={() => handleAnswerSelect(index)}
                 disabled={selectedAnswer !== null || showResult}
+                index={index}
               />
             ))}
           </div>
 
           {/* Result Message */}
           {showResult && (
-            <Card className="bg-white/95 backdrop-blur-sm shadow-game animate-bounce-in">
-              <CardContent className="p-6 text-center">
-                {(() => {
-                  const correctAnswerIndex = currentQuestion.options.findIndex(option => option.isCorrect);
-                  const isCorrect = selectedAnswer === correctAnswerIndex;
-                  const correctAnswerText = currentQuestion.options[correctAnswerIndex]?.text;
-                  
-                  return isCorrect ? (
-                    <div className="text-green-600">
-                      <div className="text-4xl mb-2">🎉</div>
-                      <h3 className="text-2xl font-bold mb-2">Correct!</h3>
-                      <div className="space-y-2">
-                        <p className="text-lg">+1000 points</p>
-                        {streak > 1 && (
-                          <p className="text-orange-600 font-bold">
-                            🔥 {streak} Answer Streak! +{Math.floor(streak * 10)}% bonus
-                          </p>
-                        )}
-                        <div className="text-sm text-muted-foreground">
-                          Response time: {((Date.now() - questionStartTime) / 1000).toFixed(1)}s
+            <div className="flex justify-center">
+              <Card className="bg-white/95 backdrop-blur-sm shadow-xl animate-bounce-in max-w-md">
+                <CardContent className="p-6 text-center">
+                  {(() => {
+                    const correctAnswerIndex = currentQuestion.options.findIndex(option => option.isCorrect);
+                    const isCorrect = selectedAnswer === correctAnswerIndex;
+                    const correctAnswerText = currentQuestion.options[correctAnswerIndex]?.text;
+                    
+                    return isCorrect ? (
+                      <div className="text-green-600">
+                        <div className="text-5xl mb-3 animate-bounce">🎉</div>
+                        <h3 className="text-3xl font-bold mb-3 text-[#1BC47D]">Correct!</h3>
+                        <div className="space-y-2">
+                          <p className="text-xl font-semibold text-gray-700">+1000 points</p>
+                          {streak > 1 && (
+                            <p className="text-orange-600 font-bold">
+                              🔥 {streak} Answer Streak! +{Math.floor(streak * 10)}% bonus
+                            </p>
+                          )}
+                          <div className="text-sm text-muted-foreground">
+                            Response time: {((Date.now() - questionStartTime) / 1000).toFixed(1)}s
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-red-600">
-                      <div className="text-4xl mb-2">😔</div>
-                      <h3 className="text-2xl font-bold mb-2">
-                        {selectedAnswer === -1 ? 'Time\'s up!' : 'Incorrect!'}
-                      </h3>
-                      <p className="text-lg">
-                        Correct answer: {correctAnswerText}
-                      </p>
-                      {streak > 0 && (
-                        <p className="text-orange-600 text-sm mt-2">
-                          Streak broken! You had {streak} correct answers.
+                    ) : (
+                      <div className="text-red-600">
+                        <div className="text-5xl mb-3">😔</div>
+                        <h3 className="text-3xl font-bold mb-3 text-[#E21B3C]">
+                          {selectedAnswer === -1 ? 'Time\'s up!' : 'Incorrect!'}
+                        </h3>
+                        <p className="text-lg text-gray-700">
+                          Correct answer: <span className="font-semibold">{correctAnswerText}</span>
                         </p>
-                      )}
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
+                        {streak > 0 && (
+                          <p className="text-orange-600 text-sm mt-2">
+                            Streak broken! You had {streak} correct answers.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </div>

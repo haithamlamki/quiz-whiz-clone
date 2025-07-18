@@ -51,6 +51,25 @@ export const Timer: React.FC<TimerProps> = ({
   const progress = ((duration - timeLeft) / duration) * 100;
   const isUrgent = timeLeft <= 5;
 
+  // If className contains 'text-' then we're being used as just a number display
+  const isNumberOnly = className?.includes('text-');
+  
+  if (isNumberOnly) {
+    return (
+      <span className={cn(
+        "transition-all duration-300",
+        isUrgent && "animate-pulse",
+        className
+      )}>
+        <SoundEffects 
+          trigger={soundTrigger} 
+          onComplete={() => setSoundTrigger(null)} 
+        />
+        {timeLeft}
+      </span>
+    );
+  }
+
   return (
     <div className={cn("space-y-2", className)}>
       <SoundEffects 
