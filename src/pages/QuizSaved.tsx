@@ -68,12 +68,14 @@ export default function QuizSaved() {
         const gamePin = pinData;
 
         // Create game in Supabase
+        // Generate a temporary UUID for anonymous hosts since host_id must be UUID
+        const tempHostId = crypto.randomUUID();
         const { error: gameError } = await supabase
           .from('games')
           .insert({
             game_pin: gamePin,
             quiz_id: quizId,
-            host_id: 'anonymous-host', // For now, since we don't have auth
+            host_id: tempHostId,
             status: 'waiting'
           });
 
