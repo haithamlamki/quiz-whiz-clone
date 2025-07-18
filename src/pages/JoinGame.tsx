@@ -18,39 +18,15 @@ export default function JoinGame() {
     
     setIsJoining(true);
     
-    let quizId = localStorage.getItem(`pin_${pin}`);
-    
-    // Fallback: search through all quizzes if direct mapping doesn't exist
-    if (!quizId) {
-      const allKeys = Object.keys(localStorage);
-      const quizKeys = allKeys.filter(key => key.startsWith('quiz_'));
-      
-      for (const key of quizKeys) {
-        try {
-          const quizDataString = localStorage.getItem(key);
-          const quizData = JSON.parse(quizDataString || '{}');
-          
-          if (quizData.pin === pin) {
-            quizId = key.replace('quiz_', '');
-            // Store the mapping for future use
-            localStorage.setItem(`pin_${pin}`, quizId);
-            break;
-          }
-        } catch (error) {
-          console.error('Error parsing quiz data for', key, ':', error);
-        }
-      }
-    }
-    
-    if (!quizId) {
+    // First check if game session exists (this is the primary way to find the game)
+    const gameSessionString = localStorage.getItem(`game_${pin}`);
+    if (!gameSessionString) {
       alert('Game not found. Please check the PIN.');
       setIsJoining(false);
       return;
     }
     
-    // Add player to game session
-    const gameSessionString = localStorage.getItem(`game_${pin}`);
-    if (gameSessionString) {
+    try {
       const gameSession = JSON.parse(gameSessionString);
       const playerId = 'player-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       
@@ -67,12 +43,17 @@ export default function JoinGame() {
         localStorage.setItem(`game_${pin}`, JSON.stringify(gameSession));
         console.log('Player joined game session:', newPlayer);
       }
+      
+      // Redirect to lobby
+      setTimeout(() => {
+        navigate(`/lobby/${pin}/${encodeURIComponent(playerName)}`);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error joining game:', error);
+      alert('Error joining game. Please try again.');
+      setIsJoining(false);
     }
-    
-    // Simulate joining game and redirect to lobby
-    setTimeout(() => {
-      navigate(`/lobby/${pin}/${encodeURIComponent(playerName)}`);
-    }, 1500);
   };
 
   return (
