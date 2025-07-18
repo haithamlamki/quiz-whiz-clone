@@ -468,19 +468,20 @@ export default function PlayGame() {
           <div className="flex justify-between items-center mb-12 px-8">
             
             {/* Timer Circle - Left */}
-            <div className="relative">
-              <div className="w-24 h-24 bg-[#5D2A8E] rounded-full flex items-center justify-center shadow-lg">
-                <div className="text-center">
-                  <Timer
-                    duration={currentQuestion.time_limit}
-                    onComplete={handleTimeUp}
-                    isActive={gameState === 'question' && !showResult}
-                    className="text-2xl font-bold text-white"
-                  />
-                  <div className="text-xs text-white/80">sec</div>
+              <div className="relative">
+                <div className="w-24 h-24 bg-[#5D2A8E] rounded-full flex items-center justify-center shadow-lg">
+                  <div className="text-center">
+                    <Timer
+                      key={`timer-${currentQuestionIndex}-${currentQuestion.id}`} // Force timer reset with key
+                      duration={currentQuestion.time_limit}
+                      onComplete={handleTimeUp}
+                      isActive={gameState === 'question' && !showResult}
+                      className="text-2xl font-bold text-white"
+                    />
+                    <div className="text-xs text-white/80">sec</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Player Info - Center */}
             <div className="text-center text-white">

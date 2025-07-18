@@ -74,9 +74,8 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
     boxShadow: `0 4px 8px ${colorStyle.shadowColor}`,
     animationDelay: `${index * 150}ms`,
     transform: selected && !showResult ? 'scale(1.02)' : 
-               isClicked ? 'scale(0.95)' : 
-               showResult && !correct && selected ? 'scale(1)' : 'scale(1)',
-    opacity: showResult && !correct && selected ? 0.5 : 1,
+               isClicked ? 'scale(0.95)' : 'scale(1)',
+    opacity: showResult && !correct ? 0.3 : 1, // Make wrong answers more transparent
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
   };
 
@@ -87,10 +86,11 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
     boxShadow: `0 6px 12px ${colorStyle.shadowColor}`
   };
 
-  // Result styles
+  // Result styles - keep original color for correct answer, just add pulse animation
   if (showResult && correct) {
-    baseStyles.backgroundColor = '#1BC47D';
+    // Keep the original color, don't change to green
     baseStyles.animation = 'pulse-correct 0.4s ease-in-out';
+    baseStyles.opacity = 1; // Ensure correct answer stays fully visible
   }
 
   return (

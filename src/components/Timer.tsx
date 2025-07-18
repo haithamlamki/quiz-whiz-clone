@@ -21,15 +21,11 @@ export const Timer: React.FC<TimerProps> = ({
 
   useEffect(() => {
     setTimeLeft(duration);
+    setSoundTrigger(null); // Reset sound trigger when duration changes
   }, [duration]);
 
   useEffect(() => {
     if (!isActive) return;
-
-    if (timeLeft <= 0) {
-      onComplete();
-      return;
-    }
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -39,7 +35,7 @@ export const Timer: React.FC<TimerProps> = ({
           setTimeout(() => onComplete(), 100); // Small delay to ensure state updates
           return 0;
         }
-        if (newTime <= 5) {
+        if (newTime <= 5 && newTime > 0) {
           setSoundTrigger('countdown');
         }
         return newTime;
@@ -47,7 +43,7 @@ export const Timer: React.FC<TimerProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isActive, onComplete]); // Removed timeLeft dependency to prevent restarts
+  }, [isActive, duration, onComplete]); // Added duration to reset timer properly
 
   const progress = ((duration - timeLeft) / duration) * 100;
   const isUrgent = timeLeft <= 5;
