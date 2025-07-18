@@ -18,11 +18,7 @@ export default function JoinGame() {
     
     setIsJoining(true);
     
-    console.log('=== JoinGame PIN Lookup Debug ===');
-    console.log('Trying to join with PIN:', pin);
-    console.log('All localStorage keys:', Object.keys(localStorage));
     let quizId = localStorage.getItem(`pin_${pin}`);
-    console.log('Direct PIN mapping result:', `pin_${pin} ->`, quizId);
     
     // Fallback: search through all quizzes if direct mapping doesn't exist
     if (!quizId) {
