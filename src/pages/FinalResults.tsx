@@ -181,112 +181,220 @@ export default function FinalResults() {
 
     const doc = new jsPDF('p', 'pt', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    // 1. Add logo in header (left side) - placeholder for now
-    // Logo would go here when available
-    
+    // 1. Add logo placeholder and brand name (left side)
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(22, 160, 133); // Teal color for brand
+    doc.text('🎯 QuizMaster', 40, 45);
+
     // 2. Centered report title
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0); // Reset to black
     doc.text(gameData.quiz_title || 'Quiz Report', pageWidth / 2, 50, { align: 'center' });
 
     // 3. Report date (right side)
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    const dateStr = new Date().toLocaleDateString();
+    const dateStr = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'numeric', 
+      day: 'numeric' 
+    });
     doc.text(`Report Date: ${dateStr}`, pageWidth - 40, 35, { align: 'right' });
 
     // 4. Draw separator line under header
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(1);
     doc.line(40, 65, pageWidth - 40, 65);
 
-    // 5. Test information section
+    let currentY = 90;
+
+    // 5. Quiz Information section
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Quiz Information:', 40, 90);
+    doc.text('Quiz Information:', 40, currentY);
 
+    currentY += 20;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Title: ${gameData.quiz_title}`, 50, 110);
-    doc.text(`Game PIN: ${pin}`, 50, 130);
+    doc.text(`Title: ${gameData.quiz_title}`, 60, currentY);
+    
+    currentY += 15;
+    doc.text(`Game PIN: ${pin}`, 60, currentY);
+    
     if (gameData.quiz_description) {
-      doc.text(`Description: ${gameData.quiz_description}`, 50, 150);
+      currentY += 15;
+      doc.text(`Description: ${gameData.quiz_description}`, 60, currentY);
     }
 
-    // 6. Questions and answers table with correct answers highlighted
-    const questionRows = questions.map((q, i) => [
-      i + 1,
-      q.question_text,
-      q.options.map((ans) =>
-        ans.correct ? `✔️ ${ans.text}` : ans.text
-      ).join('\n'),
-    ]);
+    currentY += 30;
+
+    // 6. Questions and Answers section with all options
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Questions & Answers:', 40, currentY);
+
+    currentY += 20;
+
+    // Create detailed questions table
+    const questionTableData = [];
+    questions.forEach((question, index) => {
+      // Add question row
+      questionTableData.push([
+        (index + 1).toString(),
+        question.question_text,
+        ''
+      ]);
+      
+      // Add answer options
+      question.options.forEach((option, optIndex) => {
+        const answerPrefix = ['A)', 'B)', 'C)', 'D)'][optIndex] || `${optIndex + 1})`;
+        const answerText = option.correct ? `✓ ${answerPrefix} ${option.text}` : `${answerPrefix} ${option.text}`;
+        questionTableData.push([
+          '',
+          answerText,
+          option.correct ? 'CORRECT' : ''
+        ]);
+      });
+      
+      // Add empty row for spacing
+      if (index < questions.length - 1) {
+        questionTableData.push(['', '', '']);
+      }
+    });
 
     (doc as any).autoTable({
-      startY: 170,
-      head: [['#', 'Question', 'Answers']],
-      body: questionRows,
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: [22, 160, 133] }, // Distinctive header color
+      startY: currentY,
+      head: [['#', 'Question / Answers', 'Status']],
+      body: questionTableData,
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.5
+      },
+      headStyles: { 
+        fillColor: [22, 160, 133], 
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold'
+      },
       columnStyles: {
-        0: { cellWidth: 20, halign: 'center' },
-        1: { cellWidth: 220 },
-        2: { cellWidth: 250 },
+        0: { cellWidth: 30, halign: 'center' },
+        1: { cellWidth: 350 },
+        2: { cellWidth: 80, halign: 'center' },
       },
       didParseCell: (data: any) => {
-        if (data.column.index === 2) {
-          const correctAnswers = questions[data.row.index].options.filter(opt => opt.correct);
-          if (correctAnswers.some(correct => data.cell.text.includes(`✔️ ${correct.text}`))) {
-            data.cell.styles.textColor = [39, 174, 96]; // Green for correct answers
-            data.cell.styles.fontStyle = 'bold';
-          }
+        // Style correct answers
+        if (data.cell.text.includes('✓')) {
+          data.cell.styles.textColor = [39, 174, 96]; // Green
+          data.cell.styles.fontStyle = 'bold';
+        }
+        
+        // Style "CORRECT" status
+        if (data.cell.text === 'CORRECT') {
+          data.cell.styles.fillColor = [39, 174, 96];
+          data.cell.styles.textColor = [255, 255, 255];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        
+        // Style question rows
+        if (data.column.index === 0 && data.cell.text !== '' && !isNaN(parseInt(data.cell.text))) {
+          data.cell.styles.fillColor = [240, 248, 255];
+          data.cell.styles.fontStyle = 'bold';
         }
       },
     });
 
-    // 7. Leaderboard table
-    const startY = (doc as any).lastAutoTable.finalY + 20;
+    // Check if we need a new page for leaderboard
+    const leaderboardStartY = (doc as any).lastAutoTable.finalY + 30;
+    if (leaderboardStartY > pageHeight - 200) {
+      doc.addPage();
+      currentY = 50;
+    } else {
+      currentY = leaderboardStartY;
+    }
+
+    // 7. Leaderboard section
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Leaderboard:', 40, startY);
+    doc.text('Leaderboard:', 40, currentY);
 
     const resultRows = results.map((r, i) => [
-      i + 1,
+      (i + 1).toString(),
       r.name,
-      r.score,
+      r.score.toString(),
       `${r.correctAnswers}/${gameData.total_questions}`,
       `${r.avgTime}s`
     ]);
 
     (doc as any).autoTable({
-      startY: startY + 10,
-      head: [['#', 'Player Name', 'Score', 'Correct', 'Avg Time']],
+      startY: currentY + 15,
+      head: [['Rank', 'Player Name', 'Score', 'Correct', 'Avg Time']],
       body: resultRows,
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: [22, 160, 133] },
-      alternateRowStyles: { fillColor: [240, 248, 255] }, // Alternate row shading
+      styles: { 
+        fontSize: 10, 
+        cellPadding: 4,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.5
+      },
+      headStyles: { 
+        fillColor: [22, 160, 133],
+        textColor: [255, 255, 255],
+        fontSize: 11,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
-        0: { cellWidth: 20, halign: 'center' },
-        1: { cellWidth: 200 },
+        0: { cellWidth: 50, halign: 'center' },
+        1: { cellWidth: 180 },
         2: { cellWidth: 80, halign: 'center' },
         3: { cellWidth: 80, halign: 'center' },
         4: { cellWidth: 80, halign: 'center' },
       },
+      didParseCell: (data: any) => {
+        // Highlight top 3 players
+        if (data.column.index === 0) {
+          const rank = parseInt(data.cell.text);
+          if (rank === 1) {
+            data.cell.styles.fillColor = [255, 215, 0]; // Gold
+            data.cell.styles.textColor = [0, 0, 0];
+          } else if (rank === 2) {
+            data.cell.styles.fillColor = [192, 192, 192]; // Silver
+            data.cell.styles.textColor = [0, 0, 0];
+          } else if (rank === 3) {
+            data.cell.styles.fillColor = [205, 127, 50]; // Bronze
+            data.cell.styles.textColor = [255, 255, 255];
+          }
+        }
+      },
     });
 
-    // 8. Page numbering
+    // 8. Add footer with generation info
+    const finalY = (doc as any).lastAutoTable.finalY || currentY + 100;
+    if (finalY < pageHeight - 60) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(128, 128, 128);
+      doc.text(`Generated by QuizMaster - ${new Date().toLocaleString()}`, 40, pageHeight - 30);
+    }
+
+    // 9. Page numbering
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(9);
-      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, (doc as any).internal.pageSize.getHeight() - 10, {
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 15, {
         align: 'center',
       });
     }
 
-    // 9. Save and download PDF
-    const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}.pdf`;
+    // 10. Save and download PDF
+    const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}_${dateStr.replace(/\//g, '-')}.pdf`;
     doc.save(fileName);
   };
 
