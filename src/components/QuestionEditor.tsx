@@ -656,7 +656,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
               id="time-limit"
               type="number"
               value={timeLimit}
-              onChange={(e) => setTimeLimit(parseInt(e.target.value) || 20)}
+              onChange={(e) => setTimeLimit(parseInt(e.target.value) || 6)}
               min="5"
               max="300"
             />
