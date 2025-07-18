@@ -197,21 +197,21 @@ export type Database = {
           description: string | null
           id: string
           title: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
           id?: string
           title: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
           id?: string
           title?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

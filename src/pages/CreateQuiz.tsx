@@ -108,12 +108,11 @@ export default function CreateQuiz() {
       const quizId = crypto.randomUUID();
       
       // Save quiz to Supabase
-      const tempHostId = crypto.randomUUID();
       console.log('Attempting to save quiz with data:', {
         id: quizId,
         title: quizTitle.trim(),
         description: quizDescription.trim(),
-        user_id: tempHostId
+        user_id: null // Allow anonymous quiz creation
       });
       
       const { error: quizError } = await supabase
@@ -122,7 +121,7 @@ export default function CreateQuiz() {
           id: quizId,
           title: quizTitle.trim(),
           description: quizDescription.trim(),
-          user_id: tempHostId // Temporary for anonymous users
+          user_id: null // Allow anonymous quiz creation
         });
 
       if (quizError) {
