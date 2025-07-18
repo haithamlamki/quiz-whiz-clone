@@ -303,12 +303,12 @@ export default function PlayGame() {
       setTotalCorrect(prev => prev + 1);
       setSoundTrigger('correct');
       
-      // Update player score in database
+      // Update player score in database using the increment function
       if (player) {
-        await supabase
-          .from('players')
-          .update({ score: newScore })
-          .eq('id', player.id);
+        await supabase.rpc('increment_player_score', {
+          player_id_in: player.id,
+          score_to_add: questionScore
+        });
       }
     } else {
       setStreak(0);
