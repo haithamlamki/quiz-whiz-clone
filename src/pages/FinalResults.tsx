@@ -184,60 +184,58 @@ export default function FinalResults() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // 1. Add ABRAJ logo and brand name (left side)
-    doc.setFontSize(16);
+    // 1. Header Section with Logo and Branding
+    doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(22, 160, 133); // Teal color for ABRAJ brand
-    doc.text('ABRAJ', 40, 35);
+    doc.setTextColor(27, 188, 125); // Brand green color
+    doc.text('ABRAJ QUIZ', 40, 40);
+    
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text('QuizMaster', 40, 50);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Powered by QuizMaster', 40, 58);
 
-    // 2. Centered report title
-    doc.setFontSize(22);
+    // 2. Quiz Title (Centered)
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0); // Reset to black
-    doc.text(gameData.quiz_title || 'Quiz Report', pageWidth / 2, 50, { align: 'center' });
+    doc.setTextColor(40, 40, 40);
+    doc.text(gameData.quiz_title || 'Quiz Report', pageWidth / 2, 45, { align: 'center' });
 
-    // 3. Report date (right side)
-    doc.setFontSize(10);
+    // 3. Date (Right side)
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
     const dateStr = new Date().toLocaleDateString('en-US', { 
       year: 'numeric', 
-      month: 'numeric', 
+      month: 'long', 
       day: 'numeric' 
     });
-    doc.text(`Report Date: ${dateStr}`, pageWidth - 40, 35, { align: 'right' });
+    doc.text(`Report Date: ${dateStr}`, pageWidth - 40, 40, { align: 'right' });
 
-    // 4. Draw separator line under header
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(1);
-    doc.line(40, 65, pageWidth - 40, 65);
-
-    let currentY = 90;
-
-    // 5. Quiz Information section
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Quiz Information:', 40, currentY);
-
-    currentY += 20;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Title: ${gameData.quiz_title}`, 60, currentY);
+    // 4. Quiz Information Box
+    const infoBoxY = 75;
+    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(40, infoBoxY, pageWidth - 80, 35, 3, 3, 'FD');
     
-    currentY += 15;
-    doc.text(`Game PIN: ${pin}`, 60, currentY);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('Quiz Information', 50, infoBoxY + 18);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Game PIN: ${pin}`, 50, infoBoxY + 32);
+    doc.text(`Total Questions: ${questions.length}`, 150, infoBoxY + 32);
+    doc.text(`Total Players: ${results.length}`, 280, infoBoxY + 32);
     
     if (gameData.quiz_description) {
-      currentY += 15;
-      doc.text(`Description: ${gameData.quiz_description}`, 60, currentY);
+      doc.text(`Description: ${gameData.quiz_description.substring(0, 60)}${gameData.quiz_description.length > 60 ? '...' : ''}`, 400, infoBoxY + 32);
     }
 
-    currentY += 30;
-
-    // 6. Questions and Answers section with all options
+    // 5. Questions and Answers section with all options
+    let currentY = 125;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Questions & Answers:', 40, currentY);
