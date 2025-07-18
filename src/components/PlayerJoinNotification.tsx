@@ -34,51 +34,62 @@ export const PlayerJoinNotification: React.FC<PlayerJoinNotificationProps> = ({
   const [previousPlayers, setPreviousPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
-    // Detect new players
-    const newPlayers = players.filter(player => 
-      !previousPlayers.some(prev => prev.id === player.id)
-    );
-    
-    // Detect players who left
-    const leftPlayers = previousPlayers.filter(prev => 
-      !players.some(player => player.id === prev.id)
-    );
-    
-    // Detect players who reconnected
-    const reconnectedPlayers = players.filter(player => 
-      previousPlayers.some(prev => prev.id === player.id && !prev.isOnline && player.isOnline)
-    );
+    // Only process changes after initial load and with debouncing
+    const timeoutId = setTimeout(() => {
+      if (previousPlayers.length === 0) {
+        // Initial load - just set previous players without notifications
+        setPreviousPlayers(players);
+        return;
+      }
 
-    const newNotifications: Notification[] = [
-      ...newPlayers.map(player => ({
-        id: `join-${player.id}-${Date.now()}`,
-        type: 'join' as const,
-        playerName: player.name,
-        timestamp: Date.now()
-      })),
-      ...leftPlayers.map(player => ({
-        id: `leave-${player.id}-${Date.now()}`,
-        type: 'leave' as const,
-        playerName: player.name,
-        timestamp: Date.now()
-      })),
-      ...reconnectedPlayers.map(player => ({
-        id: `reconnect-${player.id}-${Date.now()}`,
-        type: 'reconnect' as const,
-        playerName: player.name,
-        timestamp: Date.now()
-      }))
-    ];
+      // Detect new players
+      const newPlayers = players.filter(player => 
+        !previousPlayers.some(prev => prev.id === player.id)
+      );
+      
+      // Detect players who left
+      const leftPlayers = previousPlayers.filter(prev => 
+        !players.some(player => player.id === prev.id)
+      );
+      
+      // Detect players who reconnected
+      const reconnectedPlayers = players.filter(player => 
+        previousPlayers.some(prev => prev.id === player.id && !prev.isOnline && player.isOnline)
+      );
 
-    if (newNotifications.length > 0) {
-      setNotifications(prev => [
-        ...newNotifications,
-        ...prev.slice(0, maxNotifications - newNotifications.length)
-      ]);
-    }
+      const newNotifications: Notification[] = [
+        ...newPlayers.map(player => ({
+          id: `join-${player.id}-${Date.now()}`,
+          type: 'join' as const,
+          playerName: player.name,
+          timestamp: Date.now()
+        })),
+        ...leftPlayers.map(player => ({
+          id: `leave-${player.id}-${Date.now()}`,
+          type: 'leave' as const,
+          playerName: player.name,
+          timestamp: Date.now()
+        })),
+        ...reconnectedPlayers.map(player => ({
+          id: `reconnect-${player.id}-${Date.now()}`,
+          type: 'reconnect' as const,
+          playerName: player.name,
+          timestamp: Date.now()
+        }))
+      ];
 
-    setPreviousPlayers(players);
-  }, [players, maxNotifications, previousPlayers]);
+      if (newNotifications.length > 0) {
+        setNotifications(prev => [
+          ...newNotifications,
+          ...prev.slice(0, maxNotifications - newNotifications.length)
+        ]);
+      }
+
+      setPreviousPlayers(players);
+    }, 500); // Debounce player change detection
+
+    return () => clearTimeout(timeoutId);
+  }, [players, maxNotifications]);
 
   useEffect(() => {
     if (autoHide && notifications.length > 0) {

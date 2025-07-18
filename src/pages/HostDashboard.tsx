@@ -202,9 +202,17 @@ export default function HostDashboard() {
     // Load initial data
     loadPlayersAndGameState();
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates with debouncing
+    let updateTimeout: NodeJS.Timeout;
+    const debouncedUpdate = () => {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(() => {
+        loadPlayersAndGameState();
+      }, 500); // Debounce updates by 500ms
+    };
+
     const playersChannel = supabase
-      .channel('players-updates')
+      .channel(`players-updates-${pin}`)
       .on(
         'postgres_changes',
         {
@@ -212,9 +220,7 @@ export default function HostDashboard() {
           schema: 'public',
           table: 'players'
         },
-        () => {
-          loadPlayersAndGameState(); // Reload when new players join
-        }
+        debouncedUpdate
       )
       .on(
         'postgres_changes',
@@ -223,28 +229,26 @@ export default function HostDashboard() {
           schema: 'public',
           table: 'players'
         },
-        () => {
-          loadPlayersAndGameState(); // Reload when players leave
-        }
+        debouncedUpdate
       )
       .subscribe();
 
     const gameChannel = supabase
-      .channel('game-state-updates')
+      .channel(`game-state-updates-${pin}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'games'
+          table: 'games',
+          filter: `game_pin=eq.${pin}`
         },
-        () => {
-          loadPlayersAndGameState(); // Reload when game state changes
-        }
+        debouncedUpdate
       )
       .subscribe();
 
     return () => {
+      clearTimeout(updateTimeout);
       supabase.removeChannel(playersChannel);
       supabase.removeChannel(gameChannel);
     };

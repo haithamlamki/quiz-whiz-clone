@@ -111,12 +111,42 @@ export default function PlayGame() {
           .single();
 
         if (quizError || !quizData) {
+          console.error('Quiz error:', quizError);
           setError('Quiz not found');
           setLoading(false);
           return;
         }
 
-        setQuiz(quizData as Quiz);
+        // Transform questions to ensure proper format
+        const transformedQuiz = {
+          ...quizData,
+          questions: (quizData.questions || []).map((q: any) => ({
+            id: q.id,
+            question_text: q.question_text,
+            time_limit: q.time_limit || 20,
+            options: Array.isArray(q.options?.options) 
+              ? q.options.options.map((opt: string, idx: number) => ({
+                  text: opt,
+                  isCorrect: q.options?.type === 'true-false' 
+                    ? (idx === 0 ? q.options.correctAnswer === true : q.options.correctAnswer === false)
+                    : q.options?.correctAnswer === idx
+                }))
+              : q.options?.type === 'true-false'
+              ? [
+                  { text: 'True', isCorrect: q.options.correctAnswer === true },
+                  { text: 'False', isCorrect: q.options.correctAnswer === false }
+                ]
+              : [
+                  { text: 'Option 1', isCorrect: true },
+                  { text: 'Option 2', isCorrect: false },
+                  { text: 'Option 3', isCorrect: false },
+                  { text: 'Option 4', isCorrect: false }
+                ]
+          }))
+        };
+
+        console.log('Transformed quiz:', transformedQuiz);
+        setQuiz(transformedQuiz as Quiz);
 
         // Get player data
         const { data: playerData, error: playerError } = await supabase
@@ -163,7 +193,7 @@ export default function PlayGame() {
     if (!game?.id) return;
 
     const gameChannel = supabase
-      .channel('game-play-updates')
+      .channel(`game-play-${game.id}`)
       .on(
         'postgres_changes',
         {
@@ -174,6 +204,7 @@ export default function PlayGame() {
         },
         (payload) => {
           const updatedGame = payload.new as Game;
+          console.log('Game state updated:', updatedGame);
           setGame(updatedGame);
           
           // Handle game state changes
@@ -186,6 +217,7 @@ export default function PlayGame() {
           
           // Handle question changes
           if (updatedGame.current_question_index !== currentQuestionIndex && updatedGame.current_question_index >= 0) {
+            console.log('Question index changed to:', updatedGame.current_question_index);
             setCurrentQuestionIndex(updatedGame.current_question_index);
             setSelectedAnswer(null);
             setShowResult(false);

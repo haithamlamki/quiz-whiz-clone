@@ -91,8 +91,17 @@ export default function GameLobby() {
   useEffect(() => {
     if (!game?.id) return;
 
+    // Debounced player updates to prevent spam
+    let playerUpdateTimeout: NodeJS.Timeout;
+    const debouncedPlayerUpdate = () => {
+      clearTimeout(playerUpdateTimeout);
+      playerUpdateTimeout = setTimeout(() => {
+        loadPlayers();
+      }, 300);
+    };
+
     const gameChannel = supabase
-      .channel('game-lobby-updates')
+      .channel(`game-lobby-${game.id}`)
       .on(
         'postgres_changes',
         {
@@ -116,24 +125,20 @@ export default function GameLobby() {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'players'
+          table: 'players',
+          filter: `game_id=eq.${game.id}`
         },
-        () => {
-          // Reload players when new ones join
-          loadPlayers();
-        }
+        debouncedPlayerUpdate
       )
       .on(
         'postgres_changes',
         {
           event: 'DELETE',
           schema: 'public',
-          table: 'players'
+          table: 'players',
+          filter: `game_id=eq.${game.id}`
         },
-        () => {
-          // Reload players when someone leaves
-          loadPlayers();
-        }
+        debouncedPlayerUpdate
       )
       .subscribe();
 
@@ -150,6 +155,7 @@ export default function GameLobby() {
     };
 
     return () => {
+      clearTimeout(playerUpdateTimeout);
       supabase.removeChannel(gameChannel);
     };
   }, [game?.id, gameStarted]);
