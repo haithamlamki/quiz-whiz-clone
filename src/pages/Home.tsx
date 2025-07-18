@@ -116,10 +116,9 @@ export default function Home() {
                 Featured Quizzes
               </h2>
               <Button 
-                variant="outline" 
+                variant="cta" 
                 size="lg" 
                 onClick={() => navigate('/discover')}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm"
               >
                 <Search className="h-5 w-5 mr-2" />
                 Discover More Quizzes
