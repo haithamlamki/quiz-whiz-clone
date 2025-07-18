@@ -64,8 +64,12 @@ export default function HostDashboard() {
 
   // Load quiz data and set background
   useEffect(() => {
+    console.log('HostDashboard: Loading quiz with ID:', quizId);
+    console.log('HostDashboard: All localStorage keys:', Object.keys(localStorage));
     if (quizId) {
       const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+      console.log('HostDashboard: Looking for quiz data with key:', `quiz_${quizId}`);
+      console.log('HostDashboard: Found quiz data:', savedQuizData);
       if (savedQuizData) {
         const quizData = JSON.parse(savedQuizData);
         setQuiz(quizData);
