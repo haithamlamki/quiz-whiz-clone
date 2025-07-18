@@ -311,7 +311,12 @@ export default function PlayGame() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen" style={getBackgroundStyle()}>
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <div className="flex items-center justify-center min-h-screen">
           <Card className="bg-white/95 backdrop-blur-sm shadow-game">
             <CardContent className="p-8 text-center">
@@ -328,7 +333,12 @@ export default function PlayGame() {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen" style={getBackgroundStyle()}>
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <div className="flex items-center justify-center min-h-screen">
           <Card className="bg-white/95 backdrop-blur-sm shadow-game">
             <CardContent className="p-8 text-center">
@@ -347,7 +357,12 @@ export default function PlayGame() {
 
   if (gameState === 'waiting') {
     return (
-      <div className="min-h-screen" style={getBackgroundStyle()}>
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <div className="flex items-center justify-center min-h-screen">
           <Card className="bg-white/95 backdrop-blur-sm shadow-game">
             <CardContent className="p-8 text-center">
@@ -365,7 +380,12 @@ export default function PlayGame() {
   // Safety check - if no current question, show error state
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen" style={getBackgroundStyle()}>
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <div className="flex items-center justify-center min-h-screen">
           <Card className="bg-white/95 backdrop-blur-sm shadow-game">
             <CardContent className="p-8 text-center">
@@ -380,7 +400,12 @@ export default function PlayGame() {
   }
 
   return (
-    <div className="min-h-screen" style={getBackgroundStyle()}>
+    <div className="min-h-screen" style={{
+      backgroundImage: 'var(--gradient-classroom)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
+    }}>
       <SoundEffects trigger={soundTrigger} onComplete={() => setSoundTrigger(null)} />
       
       {/* Logo */}

@@ -360,7 +360,12 @@ export default function HostDashboard() {
 
   if (gameState === 'lobby') {
     return (
-      <div className="min-h-screen" style={getBackgroundStyle()}>
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
         <PlayerJoinNotification players={players} />
         
         {/* Header */}
