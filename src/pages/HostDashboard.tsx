@@ -18,8 +18,8 @@ const sampleQuiz = {
   questions: [
     {
       id: '1',
-      question: 'What is the capital of France?',
-      answers: ['London', 'Berlin', 'Paris', 'Madrid'],
+      question: 'What is your favorite season?',
+      answers: ['Winter', 'Spring', 'Summer', 'Fall'],
       correctAnswer: 2,
       timeLimit: 20,
       points: 1000

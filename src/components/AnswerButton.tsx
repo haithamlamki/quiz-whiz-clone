@@ -14,10 +14,10 @@ interface AnswerButtonProps {
 }
 
 const colorIcons = {
-  red: '△',
-  blue: '◆',
-  yellow: '◯',
-  green: '□'
+  red: '▲',     // Triangle for Winter
+  blue: '♦',    // Diamond for Spring  
+  yellow: '●',  // Circle for Summer
+  green: '■'    // Square for Fall
 };
 
 export const AnswerButton: React.FC<AnswerButtonProps> = ({

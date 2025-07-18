@@ -36,11 +36,11 @@ All colors MUST be HSL.
     --input: 0 0% 64%;
     --ring: 189 100% 25%;
 
-    /* Kahoot signature colors */
-    --answer-red: 0 85% 60%;
-    --answer-blue: 210 85% 60%;
-    --answer-yellow: 48 95% 65%;
-    --answer-green: 142 75% 55%;
+    /* Answer button colors matching the reference */
+    --answer-red: 355 71% 55%;    /* Deep red like winter */
+    --answer-blue: 213 81% 47%;   /* Bright blue like spring */
+    --answer-yellow: 45 95% 55%;  /* Orange-yellow like summer */
+    --answer-green: 145 70% 40%;  /* Deep green like fall */
     
     /* Brand Colors - Modern palette */
     --brand-purple: 280 100% 65%;
