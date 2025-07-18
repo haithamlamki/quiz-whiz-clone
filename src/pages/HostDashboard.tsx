@@ -64,23 +64,36 @@ export default function HostDashboard() {
 
   // Load quiz data and set background
   useEffect(() => {
+    console.log('=== HostDashboard PIN Mapping Debug ===');
+    console.log('QuizId:', quizId);
+    
     if (quizId) {
       const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+      console.log('Found quiz data:', !!savedQuizData);
+      
       if (savedQuizData) {
         const quizData = JSON.parse(savedQuizData);
+        console.log('Quiz data parsed:', quizData);
         setQuiz(quizData);
         
         // Use existing PIN or use quiz ID as PIN if no PIN exists
         let currentPin = quizData.pin || quizId;
+        console.log('Current PIN:', currentPin);
         setPin(currentPin);
         
         // ALWAYS store PIN mapping - this is critical for joining to work
         localStorage.setItem(`pin_${currentPin}`, quizId);
+        console.log(`Stored PIN mapping: pin_${currentPin} -> ${quizId}`);
+        
+        // Verify it was stored
+        const storedMapping = localStorage.getItem(`pin_${currentPin}`);
+        console.log('Verification - stored mapping result:', storedMapping);
         
         // Update quiz data if PIN was missing
         if (!quizData.pin) {
           quizData.pin = currentPin;
           localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
+          console.log('Updated quiz data with PIN');
         }
         
         // Set background based on quiz data
@@ -88,10 +101,12 @@ export default function HostDashboard() {
           setQuizBackground('custom', quizData.customBackground);
         }
       } else {
+        console.log('No quiz data found, creating minimal structure');
         // If quiz not found, create minimal structure with PIN
         const currentPin = quizId;
         setPin(currentPin);
         localStorage.setItem(`pin_${currentPin}`, quizId);
+        console.log(`Stored PIN mapping for minimal quiz: pin_${currentPin} -> ${quizId}`);
         
         // Create minimal quiz structure 
         const minimalQuiz = {
@@ -102,7 +117,16 @@ export default function HostDashboard() {
         };
         setQuiz(minimalQuiz);
         localStorage.setItem(`quiz_${quizId}`, JSON.stringify(minimalQuiz));
+        console.log('Created minimal quiz structure');
       }
+      
+      // Final verification - show all PIN mappings
+      const allKeys = Object.keys(localStorage);
+      const pinKeys = allKeys.filter(key => key.startsWith('pin_'));
+      console.log('All PIN mappings in localStorage:', pinKeys.map(key => ({
+        key,
+        value: localStorage.getItem(key)
+      })));
     }
   }, [quizId, setQuizBackground]);
 
