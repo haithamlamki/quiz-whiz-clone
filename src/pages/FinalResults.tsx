@@ -563,32 +563,16 @@ export default function FinalResults() {
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Button 
-              variant="game" 
-              size="lg"
-              onClick={generatePDF}
-              disabled={!gameData || !questions.length}
-            >
-              <Download className="h-5 w-5" />
-              Download PDF Report
-            </Button>
+          {/* Action Buttons - Only Join New Game for players */}
+          <div className="flex justify-center">
             <Button 
               variant="game" 
               size="lg"
               onClick={() => navigate('/')}
+              className="bg-primary hover:bg-primary/90 text-white px-8 py-3"
             >
-              <Home className="h-5 w-5" />
-              Home
-            </Button>
-            <Button 
-              variant="game" 
-              size="lg"
-              onClick={() => navigate('/create')}
-            >
-              <RotateCcw className="h-5 w-5" />
-              Create New Quiz
+              <Home className="h-5 w-5 mr-2" />
+              Join New Game
             </Button>
           </div>
         </div>
