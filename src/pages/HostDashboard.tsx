@@ -85,7 +85,6 @@ export default function HostDashboard() {
             .from('games')
             .select('game_pin')
             .eq('quiz_id', quizId)
-            .eq('is_active', true)
             .single();
 
           if (existingGame) {
@@ -96,7 +95,6 @@ export default function HostDashboard() {
               .from('games')
               .select('game_pin')
               .eq('game_pin', quizData.pin)
-              .eq('is_active', true)
               .single();
 
             if (gameByPin) {
@@ -132,7 +130,7 @@ export default function HostDashboard() {
           .insert({
             game_pin: gamePin,
             quiz_id: quizId,
-            host_id: 'anonymous-host',
+            host_id: null, // Allow anonymous hosting
             status: 'waiting'
           });
 
