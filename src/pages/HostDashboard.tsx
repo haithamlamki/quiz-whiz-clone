@@ -83,7 +83,7 @@ export default function HostDashboard() {
     return () => resetBackground();
   }, [resetBackground]);
 
-  const currentQuestion = quiz?.questions?.[currentQuestionIndex] || sampleQuiz.questions[currentQuestionIndex];
+  const currentQuestion = (quiz?.questions?.[currentQuestionIndex]) || sampleQuiz.questions[currentQuestionIndex] || { question: "Loading...", answers: [], correctAnswer: 0, timeLimit: 20, points: 1000 };
   const totalQuestions = quiz?.questions?.length || sampleQuiz.questions.length;
   const answeredCount = players.filter(p => p.answered).length;
   const answerProgress = players.length > 0 ? (answeredCount / players.length) * 100 : 0;
@@ -311,7 +311,7 @@ export default function HostDashboard() {
               <CardContent className="p-8 text-center">
                 <h2 className="text-3xl font-bold mb-8">{currentQuestion.question}</h2>
                 <div className="grid grid-cols-2 gap-4">
-                  {currentQuestion.answers.map((answer, index) => (
+                  {(currentQuestion?.answers || []).map((answer, index) => (
                     <div 
                       key={index} 
                       className={`p-6 rounded-xl text-white font-bold text-xl ${answerColors[index]}`}
@@ -365,7 +365,7 @@ export default function HostDashboard() {
               <CardContent className="p-8 text-center">
                 <h2 className="text-3xl font-bold mb-8">{currentQuestion.question}</h2>
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  {currentQuestion.answers.map((answer, index) => (
+                  {(currentQuestion?.answers || []).map((answer, index) => (
                     <div 
                       key={index} 
                       className={`p-6 rounded-xl text-white font-bold text-xl relative ${answerColors[index]} ${
