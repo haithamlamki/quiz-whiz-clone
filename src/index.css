@@ -256,5 +256,46 @@ All colors MUST be HSL.
     animation: pulse-glow 2s ease-in-out infinite;
   }
 
+  @keyframes slide-up-cascade {
+    0% { 
+      opacity: 0; 
+      transform: translateY(20px); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  @keyframes pulse-selection {
+    0% { opacity: 0; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes pulse-correct {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+  }
+
+  @keyframes correct-flash {
+    0% { background-color: inherit; }
+    50% { background-color: #1BC47D; }
+    100% { background-color: #1BC47D; }
+  }
+
+  .animate-slide-up-cascade {
+    animation: slide-up-cascade 0.3s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-selection-pulse {
+    animation: pulse-selection 0.3s ease-in-out;
+  }
+
+  .animate-correct-flash {
+    animation: correct-flash 0.4s ease-in-out, pulse-correct 0.4s ease-in-out;
+  }
+
   /* Responsive Typography handled in Tailwind config */
 }
