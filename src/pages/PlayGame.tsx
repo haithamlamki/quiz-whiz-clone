@@ -236,7 +236,9 @@ export default function PlayGame() {
 
   useEffect(() => {
     if (gameState === 'question') {
-      setQuestionStartTime(Date.now());
+      const startTime = Date.now();
+      setQuestionStartTime(startTime);
+      console.log(`Question ${currentQuestionIndex + 1} started at:`, new Date(startTime).toISOString());
     }
   }, [currentQuestionIndex, gameState]);
 
@@ -289,8 +291,11 @@ export default function PlayGame() {
       setSoundTrigger('incorrect');
     }
 
-    // Record the answer
+    // Record the answer with accurate timing
     if (player && currentQuestion) {
+      const responseTime = Date.now() - questionStartTime;
+      console.log(`Answer recorded - Response time: ${responseTime}ms (${(responseTime / 1000).toFixed(2)}s)`);
+      
       await supabase
         .from('answers')
         .insert({
@@ -298,7 +303,7 @@ export default function PlayGame() {
           question_id: currentQuestion.id,
           is_correct: isCorrect,
           score_awarded: isCorrect ? basePoints : 0,
-          time_taken_ms: Date.now() - questionStartTime
+          time_taken_ms: responseTime
         });
     }
 

@@ -33,20 +33,21 @@ export const Timer: React.FC<TimerProps> = ({
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) {
+        const newTime = prev - 1;
+        if (newTime <= 0) {
           setSoundTrigger('timeup');
-          onComplete();
+          setTimeout(() => onComplete(), 100); // Small delay to ensure state updates
           return 0;
         }
-        if (prev <= 5) {
+        if (newTime <= 5) {
           setSoundTrigger('countdown');
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isActive, onComplete]);
+  }, [isActive, onComplete]); // Removed timeLeft dependency to prevent restarts
 
   const progress = ((duration - timeLeft) / duration) * 100;
   const isUrgent = timeLeft <= 5;
