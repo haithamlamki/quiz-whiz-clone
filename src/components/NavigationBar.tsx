@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
-import { Menu, X, Home, Plus, Users, Trophy, Settings } from 'lucide-react';
+import { Menu, X, Home, Plus, Users, Trophy, Settings, History } from 'lucide-react';
 
 const navigationItems = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Create Quiz', href: '/create', icon: Plus },
+  { label: 'Quiz History', href: '/history', icon: History },
   { label: 'Join Game', href: '/join', icon: Users },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
 ];

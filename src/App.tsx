@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import CreateQuiz from "./pages/CreateQuiz";
 import QuizSaved from "./pages/QuizSaved";
+import QuizHistory from "./pages/QuizHistory";
 import JoinGame from "./pages/JoinGame";
 import PlayGame from "./pages/PlayGame";
 import GameResults from "./pages/GameResults";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/discover" element={<DiscoverQuizzes />} />
             <Route path="/create" element={<CreateQuiz />} />
+            <Route path="/history" element={<QuizHistory />} />
             <Route path="/quiz-saved/:quizId" element={<QuizSaved />} />
             <Route path="/join/:pin" element={<JoinGame />} />
             <Route path="/lobby/:pin/:playerName" element={<GameLobby />} />

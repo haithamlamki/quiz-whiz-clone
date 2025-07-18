@@ -35,6 +35,7 @@ export default function QuizSaved() {
       // Ensure PIN mapping is stored for joining
       if (quizData.pin) {
         localStorage.setItem(`pin_${quizData.pin}`, quizId);
+        console.log('QuizSaved: Stored PIN mapping:', `pin_${quizData.pin}`, '->', quizId);
       }
       
       // Generate QR code
