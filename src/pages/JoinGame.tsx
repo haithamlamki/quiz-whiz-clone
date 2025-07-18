@@ -19,7 +19,28 @@ export default function JoinGame() {
     setIsJoining(true);
     
     // Check if the PIN corresponds to a valid quiz
-    const quizId = localStorage.getItem(`pin_${pin}`);
+    let quizId = localStorage.getItem(`pin_${pin}`);
+    
+    // Fallback: search through all quizzes if direct mapping doesn't exist
+    if (!quizId) {
+      const allKeys = Object.keys(localStorage);
+      const quizKeys = allKeys.filter(key => key.startsWith('quiz_'));
+      
+      for (const key of quizKeys) {
+        try {
+          const quizData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (quizData.pin === pin) {
+            quizId = key.replace('quiz_', '');
+            // Store the mapping for future use
+            localStorage.setItem(`pin_${pin}`, quizId);
+            break;
+          }
+        } catch (error) {
+          console.error('Error parsing quiz data:', error);
+        }
+      }
+    }
+    
     if (!quizId) {
       alert('Game not found. Please check the PIN.');
       setIsJoining(false);
@@ -117,7 +138,26 @@ export default function JoinGame() {
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
                 {(() => {
-                  const quizId = localStorage.getItem(`pin_${pin}`);
+                  let quizId = localStorage.getItem(`pin_${pin}`);
+                  
+                  // Fallback: search through all quizzes if direct mapping doesn't exist
+                  if (!quizId) {
+                    const allKeys = Object.keys(localStorage);
+                    const quizKeys = allKeys.filter(key => key.startsWith('quiz_'));
+                    
+                    for (const key of quizKeys) {
+                      try {
+                        const quizData = JSON.parse(localStorage.getItem(key) || '{}');
+                        if (quizData.pin === pin) {
+                          quizId = key.replace('quiz_', '');
+                          break;
+                        }
+                      } catch (error) {
+                        console.error('Error parsing quiz data:', error);
+                      }
+                    }
+                  }
+                  
                   const quizData = quizId ? JSON.parse(localStorage.getItem(`quiz_${quizId}`) || '{}') : null;
                   
                   if (quizData && quizData.title) {
