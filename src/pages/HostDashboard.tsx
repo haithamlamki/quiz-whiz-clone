@@ -155,19 +155,25 @@ export default function HostDashboard() {
   }, [quizId, setQuizBackground]);
 
   // Reset background when leaving this page
-  // Subscribe to real-time player updates
+  // Subscribe to real-time player updates and game state
   useEffect(() => {
     if (!pin) return;
 
-    const loadPlayers = async () => {
+    const loadPlayersAndGameState = async () => {
       try {
         const { data: game } = await supabase
           .from('games')
-          .select('id')
+          .select('*')
           .eq('game_pin', pin)
           .single();
 
         if (!game) return;
+
+        // Update game state based on database
+        if (game.status === 'playing' && gameState === 'lobby') {
+          setGameState('question');
+          setCurrentQuestionIndex(game.current_question_index >= 0 ? game.current_question_index : 0);
+        }
 
         const { data: playersData } = await supabase
           .from('players')
@@ -189,15 +195,15 @@ export default function HostDashboard() {
           setPlayers(formattedPlayers);
         }
       } catch (error) {
-        console.error('Error loading players:', error);
+        console.error('Error loading players and game state:', error);
       }
     };
 
-    // Load initial players
-    loadPlayers();
+    // Load initial data
+    loadPlayersAndGameState();
 
     // Subscribe to real-time updates
-    const channel = supabase
+    const playersChannel = supabase
       .channel('players-updates')
       .on(
         'postgres_changes',
@@ -207,15 +213,42 @@ export default function HostDashboard() {
           table: 'players'
         },
         () => {
-          loadPlayers(); // Reload players when new ones join
+          loadPlayersAndGameState(); // Reload when new players join
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'players'
+        },
+        () => {
+          loadPlayersAndGameState(); // Reload when players leave
+        }
+      )
+      .subscribe();
+
+    const gameChannel = supabase
+      .channel('game-state-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games'
+        },
+        () => {
+          loadPlayersAndGameState(); // Reload when game state changes
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(playersChannel);
+      supabase.removeChannel(gameChannel);
     };
-  }, [pin]);
+  }, [pin, gameState]);
 
   useEffect(() => {
     return () => resetBackground();
@@ -233,21 +266,86 @@ export default function HostDashboard() {
     }
   }, [gameState, timeLeft, isPaused]);
 
-  const startGame = () => {
-    setGameState('question');
-    setTimeLeft(currentQuestion.timeLimit);
+  const startGame = async () => {
+    try {
+      // Update game status in database
+      const { data: game } = await supabase
+        .from('games')
+        .select('id')
+        .eq('game_pin', pin)
+        .single();
+
+      if (game) {
+        await supabase
+          .from('games')
+          .update({
+            status: 'playing',
+            current_question_index: 0
+          })
+          .eq('id', game.id);
+      }
+
+      setGameState('question');
+      setCurrentQuestionIndex(0);
+      setTimeLeft(currentQuestion.timeLimit || 20);
+    } catch (error) {
+      console.error('Error starting game:', error);
+    }
   };
 
-  const nextQuestion = () => {
+  const nextQuestion = async () => {
     const totalQuestions = quiz?.questions?.length || sampleQuiz.questions.length;
-    if (currentQuestionIndex < totalQuestions - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setGameState('question');
-      const nextQ = quiz?.questions?.[currentQuestionIndex + 1] || sampleQuiz.questions[currentQuestionIndex + 1];
-      setTimeLeft(nextQ.timeLimit || 20);
-      // Reset answered status
-      setPlayers(prev => prev.map(p => ({ ...p, answered: false })));
+    const nextIndex = currentQuestionIndex + 1;
+    
+    if (nextIndex < totalQuestions) {
+      try {
+        // Update game in database
+        const { data: game } = await supabase
+          .from('games')
+          .select('id')
+          .eq('game_pin', pin)
+          .single();
+
+        if (game) {
+          await supabase
+            .from('games')
+            .update({
+              current_question_index: nextIndex
+            })
+            .eq('id', game.id);
+        }
+
+        setCurrentQuestionIndex(nextIndex);
+        setGameState('question');
+        const nextQ = quiz?.questions?.[nextIndex] || sampleQuiz.questions[nextIndex];
+        setTimeLeft(nextQ.timeLimit || 20);
+        // Reset answered status
+        setPlayers(prev => prev.map(p => ({ ...p, answered: false })));
+      } catch (error) {
+        console.error('Error moving to next question:', error);
+      }
     } else {
+      // End the game
+      try {
+        const { data: game } = await supabase
+          .from('games')
+          .select('id')
+          .eq('game_pin', pin)
+          .single();
+
+        if (game) {
+          await supabase
+            .from('games')
+            .update({
+              status: 'finished',
+              ended_at: new Date().toISOString()
+            })
+            .eq('id', game.id);
+        }
+      } catch (error) {
+        console.error('Error ending game:', error);
+      }
+      
       navigate(`/final-results/${quiz?.pin || pin}`);
     }
   };

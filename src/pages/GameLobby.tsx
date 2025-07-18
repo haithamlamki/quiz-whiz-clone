@@ -2,55 +2,212 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Wifi, Activity, Clock, Trophy } from 'lucide-react';
+import { Users, Wifi, Activity, Clock, Trophy, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Player {
+  id: string;
+  name: string;
+  score: number;
+  joined_at: string;
+}
+
+interface Game {
+  id: string;
+  game_pin: string;
+  quiz_id: string;
+  status: string;
+  current_question_index: number;
+}
 
 export default function GameLobby() {
   const { pin, playerName: urlPlayerName } = useParams();
   const navigate = useNavigate();
   const playerName = decodeURIComponent(urlPlayerName || '');
-  const [isJoined, setIsJoined] = useState(true);
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(3);
+  const [game, setGame] = useState<Game | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Simulate other players joining with animations
+  // Load real players and game data
   useEffect(() => {
-    const playerNames = ['Alex', 'Sarah', 'Mike', 'Emma', 'David', 'Lisa', 'James', 'Maya'];
-    let currentIndex = 0;
-    
-    const interval = setInterval(() => {
-      if (currentIndex < playerNames.length && Math.random() > 0.3) {
-        setPlayers(prev => [...prev, playerNames[currentIndex]]);
-        currentIndex++;
+    const loadGameData = async () => {
+      if (!pin || !playerName) {
+        setError('Missing game PIN or player name');
+        setLoading(false);
+        return;
       }
-    }, Math.random() * 3000 + 1000); // Random interval between 1-4 seconds
 
-    return () => clearInterval(interval);
-  }, []);
+      try {
+        // Get game data
+        const { data: gameData, error: gameError } = await supabase
+          .from('games')
+          .select('*')
+          .eq('game_pin', pin)
+          .single();
 
-  // Simulate game starting with countdown
+        if (gameError || !gameData) {
+          setError('Game not found');
+          setLoading(false);
+          return;
+        }
+
+        setGame(gameData);
+
+        // Load players
+        const { data: playersData, error: playersError } = await supabase
+          .from('players')
+          .select('*')
+          .eq('game_id', gameData.id)
+          .order('joined_at', { ascending: true });
+
+        if (playersError) {
+          console.error('Error loading players:', playersError);
+        } else if (playersData) {
+          setPlayers(playersData);
+        }
+
+        setLoading(false);
+
+        // Check if game has started
+        if (gameData.status === 'playing') {
+          setGameStarted(true);
+          startCountdown();
+        }
+
+      } catch (err) {
+        console.error('Error loading game data:', err);
+        setError('Failed to load game data');
+        setLoading(false);
+      }
+    };
+
+    loadGameData();
+  }, [pin, playerName]);
+
+  // Subscribe to real-time game and player updates
   useEffect(() => {
-    if (isJoined && playerName) {
-      setPlayers(prev => [...prev.filter(p => p !== playerName), playerName]);
-      
-      const timer = setTimeout(() => {
-        setGameStarted(true);
-        // Start countdown
-        const countdownInterval = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(countdownInterval);
-              navigate(`/play/${pin}/${encodeURIComponent(playerName)}`);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      }, 8000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isJoined, pin, playerName, navigate]);
+    if (!game?.id) return;
+
+    const gameChannel = supabase
+      .channel('game-lobby-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'games',
+          filter: `id=eq.${game.id}`
+        },
+        (payload) => {
+          const updatedGame = payload.new as Game;
+          setGame(updatedGame);
+          
+          if (updatedGame.status === 'playing' && !gameStarted) {
+            setGameStarted(true);
+            startCountdown();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'players'
+        },
+        () => {
+          // Reload players when new ones join
+          loadPlayers();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'players'
+        },
+        () => {
+          // Reload players when someone leaves
+          loadPlayers();
+        }
+      )
+      .subscribe();
+
+    const loadPlayers = async () => {
+      const { data: playersData } = await supabase
+        .from('players')
+        .select('*')
+        .eq('game_id', game.id)
+        .order('joined_at', { ascending: true });
+
+      if (playersData) {
+        setPlayers(playersData);
+      }
+    };
+
+    return () => {
+      supabase.removeChannel(gameChannel);
+    };
+  }, [game?.id, gameStarted]);
+
+  const startCountdown = () => {
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          navigate(`/play/${pin}/${encodeURIComponent(playerName)}`);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Loading...</h2>
+              <p className="text-muted-foreground">Connecting to game lobby</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="text-4xl mb-4">❌</div>
+              <h2 className="text-2xl font-bold mb-2">Error</h2>
+              <p className="text-muted-foreground mb-4">{error}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
 
   return (
@@ -115,29 +272,24 @@ export default function GameLobby() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Players ({players.length + 1})
+                Players ({players.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {/* Current player */}
-                <div className="bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-3 rounded-lg font-semibold text-center relative animate-pulse-glow">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    {playerName} (You)
-                  </div>
-                </div>
-                
-                {/* Other players */}
                 {players.map((player, index) => (
                   <div 
-                    key={player} 
-                    className="bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 px-4 py-3 rounded-lg font-semibold text-center animate-slide-up"
+                    key={player.id} 
+                    className={`px-4 py-3 rounded-lg font-semibold text-center animate-slide-up ${
+                      player.name === playerName
+                        ? 'bg-gradient-to-r from-primary to-primary/80 text-white animate-pulse-glow'
+                        : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800'
+                    }`}
                     style={{ animationDelay: `${index * 200}ms` }}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full" />
-                      {player}
+                      {player.name} {player.name === playerName && '(You)'}
                     </div>
                   </div>
                 ))}
