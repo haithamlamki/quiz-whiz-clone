@@ -6,45 +6,53 @@ import { SoundEffects } from '@/components/SoundEffects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
-import { Trophy, Users, Clock, X } from 'lucide-react';
+import { Trophy, Users, Clock, X, Loader2 } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
+import { supabase } from '@/integrations/supabase/client';
 
-// Sample quiz data
-const sampleQuiz = {
-  id: '1',
-  title: 'General Knowledge Quiz',
-  questions: [
-    {
-      id: '1',
-      question: 'What is the capital of France?',
-      answers: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correctAnswer: 2,
-      timeLimit: 20,
-      points: 1000
-    },
-    {
-      id: '2',
-      question: 'Which planet is known as the Red Planet?',
-      answers: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
-      correctAnswer: 1,
-      timeLimit: 15,
-      points: 1200
-    },
-    {
-      id: '3',
-      question: 'What is 2 + 2?',
-      answers: ['3', '4', '5', '6'],
-      correctAnswer: 1,
-      timeLimit: 10,
-      points: 800
-    }
-  ]
-};
+interface Question {
+  id: string;
+  question_text: string;
+  options: {
+    text: string;
+    isCorrect: boolean;
+  }[];
+  time_limit: number;
+}
+
+interface Quiz {
+  id: string;
+  title: string;
+  questions: Question[];
+}
+
+interface Game {
+  id: string;
+  game_pin: string;
+  quiz_id: string;
+  current_question_index: number;
+  status: string;
+}
+
+interface Player {
+  id: string;
+  name: string;
+  score: number;
+}
 
 export default function PlayGame() {
   const { pin, playerName } = useParams();
   const navigate = useNavigate();
   const { getBackgroundStyle, resetBackground } = useQuizBackground();
+  
+  // Game state
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Question state
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -61,17 +69,93 @@ export default function PlayGame() {
     return () => resetBackground();
   }, [resetBackground]);
 
-  const currentQuestion = sampleQuiz.questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === sampleQuiz.questions.length - 1;
-
+  // Load game data
   useEffect(() => {
-    // Simulate game start
-    const timer = setTimeout(() => {
-      setGameState('question');
-      setQuestionStartTime(Date.now());
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    const loadGameData = async () => {
+      if (!pin || !playerName) {
+        setError('Missing game PIN or player name');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Get game data
+        const { data: gameData, error: gameError } = await supabase
+          .from('games')
+          .select('*')
+          .eq('game_pin', pin)
+          .single();
+
+        if (gameError || !gameData) {
+          setError('Game not found');
+          setLoading(false);
+          return;
+        }
+
+        setGame(gameData);
+
+        // Get quiz data with questions
+        const { data: quizData, error: quizError } = await supabase
+          .from('quizzes')
+          .select(`
+            id,
+            title,
+            questions (
+              id,
+              question_text,
+              options,
+              time_limit
+            )
+          `)
+          .eq('id', gameData.quiz_id)
+          .single();
+
+        if (quizError || !quizData) {
+          setError('Quiz not found');
+          setLoading(false);
+          return;
+        }
+
+        setQuiz(quizData as Quiz);
+
+        // Get or create player
+        const { data: playerData, error: playerError } = await supabase
+          .from('players')
+          .select('*')
+          .eq('game_id', gameData.id)
+          .eq('name', decodeURIComponent(playerName))
+          .single();
+
+        if (playerError || !playerData) {
+          setError('Player not found in this game');
+          setLoading(false);
+          return;
+        }
+
+        setPlayer(playerData);
+        setScore(playerData.score || 0);
+        setCurrentQuestionIndex(gameData.current_question_index >= 0 ? gameData.current_question_index : 0);
+        
+        setLoading(false);
+        
+        // Start the game
+        setTimeout(() => {
+          setGameState('question');
+          setQuestionStartTime(Date.now());
+        }, 2000);
+
+      } catch (err) {
+        console.error('Error loading game data:', err);
+        setError('Failed to load game data');
+        setLoading(false);
+      }
+    };
+
+    loadGameData();
+  }, [pin, playerName]);
+
+  const currentQuestion = quiz?.questions[currentQuestionIndex];
+  const isLastQuestion = quiz ? currentQuestionIndex === quiz.questions.length - 1 : false;
 
   useEffect(() => {
     if (gameState === 'question') {
@@ -92,31 +176,60 @@ export default function PlayGame() {
     showQuestionResult();
   };
 
-  const showQuestionResult = () => {
+  const showQuestionResult = async () => {
     setShowResult(true);
     setGameState('result');
     
+    if (!currentQuestion) return;
+    
+    // Find correct answer index
+    const correctAnswerIndex = currentQuestion.options.findIndex(option => option.isCorrect);
+    const isCorrect = selectedAnswer === correctAnswerIndex;
+    const basePoints = 1000; // Default points per question
+    
     // Calculate score with speed bonus and streak multiplier
-    if (selectedAnswer === currentQuestion.correctAnswer) {
+    if (isCorrect) {
       const responseTime = Date.now() - questionStartTime;
-      const speedBonus = Math.max(0, currentQuestion.timeLimit * 1000 - responseTime) / 100;
+      const speedBonus = Math.max(0, currentQuestion.time_limit * 1000 - responseTime) / 100;
       const streakMultiplier = 1 + (streak * 0.1);
-      const questionScore = Math.floor((currentQuestion.points + speedBonus) * streakMultiplier);
+      const questionScore = Math.floor((basePoints + speedBonus) * streakMultiplier);
       
-      setScore(prev => prev + questionScore);
+      const newScore = score + questionScore;
+      setScore(newScore);
       setStreak(prev => prev + 1);
       setTotalCorrect(prev => prev + 1);
       setSoundTrigger('correct');
+      
+      // Update player score in database
+      if (player) {
+        await supabase
+          .from('players')
+          .update({ score: newScore })
+          .eq('id', player.id);
+      }
     } else {
       setStreak(0);
       setSoundTrigger('incorrect');
+    }
+
+    // Record the answer
+    if (player && currentQuestion) {
+      await supabase
+        .from('answers')
+        .insert({
+          player_id: player.id,
+          question_id: currentQuestion.id,
+          is_correct: isCorrect,
+          score_awarded: isCorrect ? basePoints : 0,
+          time_taken_ms: Date.now() - questionStartTime
+        });
     }
 
     // Auto advance after 3 seconds
     setTimeout(() => {
       if (isLastQuestion) {
         setGameState('finished');
-        navigate(`/results/${pin}/${encodeURIComponent(playerName || '')}/${score}`);
+        navigate(`/final-results/${pin}`);
       } else {
         setCurrentQuestionIndex(prev => prev + 1);
         setSelectedAnswer(null);
@@ -128,6 +241,43 @@ export default function PlayGame() {
   };
 
   const answerColors: ('red' | 'blue' | 'yellow' | 'green')[] = ['red', 'blue', 'yellow', 'green'];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen" style={getBackgroundStyle()}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Loading Game...</h2>
+              <p className="text-muted-foreground">Please wait while we load the quiz</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen" style={getBackgroundStyle()}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+            <CardContent className="p-8 text-center">
+              <div className="text-4xl mb-4">❌</div>
+              <h2 className="text-2xl font-bold mb-2">Game Error</h2>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={() => navigate('/')} variant="outline">
+                Go Home
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (gameState === 'waiting') {
     return (
@@ -188,7 +338,7 @@ export default function PlayGame() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">{sampleQuiz.title}</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">{quiz?.title}</h1>
             <div className="flex items-center justify-center gap-6 text-white/80">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -210,13 +360,13 @@ export default function PlayGame() {
           {/* Question Progress */}
           <div className="mb-6">
             <div className="flex justify-between items-center text-white/80 text-sm mb-2">
-              <span>Question {currentQuestionIndex + 1} of {sampleQuiz.questions.length}</span>
-              <span>{currentQuestion.points} points</span>
+              <span>Question {currentQuestionIndex + 1} of {quiz?.questions.length || 0}</span>
+              <span>1000 points</span>
             </div>
             <div className="w-full bg-white/20 rounded-full h-2">
               <div 
                 className="bg-white rounded-full h-2 transition-all duration-500"
-                style={{ width: `${((currentQuestionIndex + 1) / sampleQuiz.questions.length) * 100}%` }}
+                style={{ width: `${quiz ? ((currentQuestionIndex + 1) / quiz.questions.length) * 100 : 0}%` }}
               />
             </div>
           </div>
@@ -224,7 +374,7 @@ export default function PlayGame() {
           {/* Timer */}
           <div className="mb-8">
             <Timer
-              duration={currentQuestion.timeLimit}
+              duration={currentQuestion.time_limit}
               onComplete={handleTimeUp}
               isActive={gameState === 'question' && !showResult}
               className="bg-white/10 backdrop-blur-sm p-4 rounded-xl"
@@ -235,21 +385,21 @@ export default function PlayGame() {
           <Card className="mb-8 bg-white/95 backdrop-blur-sm shadow-game">
             <CardHeader>
               <CardTitle className="text-2xl text-center">
-                {currentQuestion.question}
+                {currentQuestion.question_text}
               </CardTitle>
             </CardHeader>
           </Card>
 
           {/* Answers */}
           <div className="grid grid-cols-2 gap-4 mb-8">
-            {currentQuestion.answers.map((answer, index) => (
+            {currentQuestion.options.map((option, index) => (
               <AnswerButton
                 key={index}
-                answer={answer}
+                answer={option.text}
                 color={answerColors[index]}
                 icon={answerColors[index]}
                 selected={selectedAnswer === index}
-                correct={index === currentQuestion.correctAnswer}
+                correct={option.isCorrect}
                 showResult={showResult}
                 onClick={() => handleAnswerSelect(index)}
                 disabled={selectedAnswer !== null || showResult}
@@ -261,38 +411,44 @@ export default function PlayGame() {
           {showResult && (
             <Card className="bg-white/95 backdrop-blur-sm shadow-game animate-bounce-in">
               <CardContent className="p-6 text-center">
-                {selectedAnswer === currentQuestion.correctAnswer ? (
-                  <div className="text-green-600">
-                    <div className="text-4xl mb-2">🎉</div>
-                    <h3 className="text-2xl font-bold mb-2">Correct!</h3>
-                    <div className="space-y-2">
-                      <p className="text-lg">+{currentQuestion.points} points</p>
-                      {streak > 1 && (
-                        <p className="text-orange-600 font-bold">
-                          🔥 {streak} Answer Streak! +{Math.floor(streak * 10)}% bonus
-                        </p>
-                      )}
-                      <div className="text-sm text-muted-foreground">
-                        Response time: {((Date.now() - questionStartTime) / 1000).toFixed(1)}s
+                {(() => {
+                  const correctAnswerIndex = currentQuestion.options.findIndex(option => option.isCorrect);
+                  const isCorrect = selectedAnswer === correctAnswerIndex;
+                  const correctAnswerText = currentQuestion.options[correctAnswerIndex]?.text;
+                  
+                  return isCorrect ? (
+                    <div className="text-green-600">
+                      <div className="text-4xl mb-2">🎉</div>
+                      <h3 className="text-2xl font-bold mb-2">Correct!</h3>
+                      <div className="space-y-2">
+                        <p className="text-lg">+1000 points</p>
+                        {streak > 1 && (
+                          <p className="text-orange-600 font-bold">
+                            🔥 {streak} Answer Streak! +{Math.floor(streak * 10)}% bonus
+                          </p>
+                        )}
+                        <div className="text-sm text-muted-foreground">
+                          Response time: {((Date.now() - questionStartTime) / 1000).toFixed(1)}s
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-red-600">
-                    <div className="text-4xl mb-2">😔</div>
-                    <h3 className="text-2xl font-bold mb-2">
-                      {selectedAnswer === -1 ? 'Time\'s up!' : 'Incorrect!'}
-                    </h3>
-                    <p className="text-lg">
-                      Correct answer: {currentQuestion.answers[currentQuestion.correctAnswer]}
-                    </p>
-                    {streak > 0 && (
-                      <p className="text-orange-600 text-sm mt-2">
-                        Streak broken! You had {streak} correct answers.
+                  ) : (
+                    <div className="text-red-600">
+                      <div className="text-4xl mb-2">😔</div>
+                      <h3 className="text-2xl font-bold mb-2">
+                        {selectedAnswer === -1 ? 'Time\'s up!' : 'Incorrect!'}
+                      </h3>
+                      <p className="text-lg">
+                        Correct answer: {correctAnswerText}
                       </p>
-                    )}
-                  </div>
-                )}
+                      {streak > 0 && (
+                        <p className="text-orange-600 text-sm mt-2">
+                          Streak broken! You had {streak} correct answers.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           )}

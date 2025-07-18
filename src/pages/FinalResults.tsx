@@ -1,48 +1,114 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, Award, Home, RotateCcw } from 'lucide-react';
+import { Trophy, Medal, Award, Home, RotateCcw, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-// Sample final results data
-const finalResults = [
-  { 
-    rank: 1, 
-    name: 'Player1', 
-    score: 2850, 
-    correctAnswers: 3, 
-    streak: 3,
-    avgTime: 12.3 
-  },
-  { 
-    rank: 2, 
-    name: 'Player2', 
-    score: 2100, 
-    correctAnswers: 2, 
-    streak: 2,
-    avgTime: 15.7 
-  },
-  { 
-    rank: 3, 
-    name: 'Player3', 
-    score: 1200, 
-    correctAnswers: 1, 
-    streak: 1,
-    avgTime: 18.2 
-  },
-  { 
-    rank: 4, 
-    name: 'Player4', 
-    score: 800, 
-    correctAnswers: 1, 
-    streak: 0,
-    avgTime: 19.8 
-  },
-];
+interface PlayerResult {
+  rank: number;
+  name: string;
+  score: number;
+  correctAnswers: number;
+  avgTime: number;
+}
+
+interface GameData {
+  quiz_title: string;
+  total_questions: number;
+}
 
 export default function FinalResults() {
   const { pin } = useParams();
   const navigate = useNavigate();
+  
+  const [results, setResults] = useState<PlayerResult[]>([]);
+  const [gameData, setGameData] = useState<GameData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadFinalResults = async () => {
+      if (!pin) {
+        setError('Game PIN not found');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Get game and quiz info
+        const { data: gameInfo, error: gameError } = await supabase
+          .from('games')
+          .select(`
+            id,
+            quiz_id,
+            quizzes (
+              title,
+              questions (id)
+            )
+          `)
+          .eq('game_pin', pin)
+          .single();
+
+        if (gameError || !gameInfo) {
+          setError('Game not found');
+          setLoading(false);
+          return;
+        }
+
+        // Get all players with their answers
+        const { data: playersData, error: playersError } = await supabase
+          .from('players')
+          .select(`
+            id,
+            name,
+            score,
+            answers (
+              is_correct,
+              time_taken_ms
+            )
+          `)
+          .eq('game_id', gameInfo.id)
+          .order('score', { ascending: false });
+
+        if (playersError) {
+          setError('Failed to load player data');
+          setLoading(false);
+          return;
+        }
+
+        // Process results
+        const processedResults: PlayerResult[] = (playersData || []).map((player, index) => {
+          const correctAnswers = player.answers?.filter(a => a.is_correct).length || 0;
+          const avgTime = player.answers?.length 
+            ? player.answers.reduce((sum, a) => sum + (a.time_taken_ms || 0), 0) / player.answers.length / 1000
+            : 0;
+
+          return {
+            rank: index + 1,
+            name: player.name,
+            score: player.score || 0,
+            correctAnswers,
+            avgTime: Number(avgTime.toFixed(1))
+          };
+        });
+
+        setResults(processedResults);
+        setGameData({
+          quiz_title: gameInfo.quizzes?.title || 'Quiz',
+          total_questions: gameInfo.quizzes?.questions?.length || 0
+        });
+        setLoading(false);
+
+      } catch (err) {
+        console.error('Error loading final results:', err);
+        setError('Failed to load results');
+        setLoading(false);
+      }
+    };
+
+    loadFinalResults();
+  }, [pin]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -61,6 +127,46 @@ export default function FinalResults() {
       default: return 'bg-gradient-to-r from-gray-100 to-gray-300';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Loading Results...</h2>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+          <CardContent className="p-8 text-center">
+            <div className="text-4xl mb-4">❌</div>
+            <h2 className="text-2xl font-bold mb-2">Error</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => navigate('/')} variant="outline">
+              Go Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -90,7 +196,7 @@ export default function FinalResults() {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-3 gap-6">
-                {finalResults.slice(0, 3).map((player, index) => (
+                {results.slice(0, 3).map((player, index) => (
                   <div key={player.rank} className="text-center">
                     <div 
                       className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 ${getRankBg(player.rank)}`}
@@ -102,10 +208,10 @@ export default function FinalResults() {
                       {player.score.toLocaleString()}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {player.correctAnswers}/3 correct
+                      {player.correctAnswers}/{gameData?.total_questions || 0} correct
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {player.streak} streak • {player.avgTime}s avg
+                      {player.avgTime}s avg
                     </div>
                   </div>
                 ))}
@@ -120,7 +226,7 @@ export default function FinalResults() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {finalResults.map((player) => (
+                {results.map((player) => (
                   <div 
                     key={player.rank}
                     className={`p-4 rounded-lg flex items-center justify-between ${
@@ -132,7 +238,7 @@ export default function FinalResults() {
                       <div>
                         <div className="font-bold text-lg">{player.name}</div>
                         <div className="text-sm opacity-80">
-                          {player.correctAnswers}/3 correct • {player.streak} streak
+                          {player.correctAnswers}/{gameData?.total_questions || 0} correct
                         </div>
                       </div>
                     </div>
@@ -159,22 +265,24 @@ export default function FinalResults() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                 <div>
-                  <div className="text-3xl font-bold text-primary">{finalResults.length}</div>
+                  <div className="text-3xl font-bold text-primary">{results.length}</div>
                   <div className="text-sm text-muted-foreground">Total Players</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-primary">3</div>
+                  <div className="text-3xl font-bold text-primary">{gameData?.total_questions || 0}</div>
                   <div className="text-sm text-muted-foreground">Questions</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-primary">
-                    {Math.round(finalResults.reduce((acc, p) => acc + p.avgTime, 0) / finalResults.length)}s
+                    {results.length > 0 ? Math.round(results.reduce((acc, p) => acc + p.avgTime, 0) / results.length) : 0}s
                   </div>
                   <div className="text-sm text-muted-foreground">Avg Answer Time</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-primary">
-                    {Math.round((finalResults.reduce((acc, p) => acc + p.correctAnswers, 0) / (finalResults.length * 3)) * 100)}%
+                    {results.length > 0 && gameData?.total_questions ? 
+                      Math.round((results.reduce((acc, p) => acc + p.correctAnswers, 0) / (results.length * gameData.total_questions)) * 100) 
+                      : 0}%
                   </div>
                   <div className="text-sm text-muted-foreground">Accuracy</div>
                 </div>
