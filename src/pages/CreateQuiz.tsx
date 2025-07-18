@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Upload, Eye, Settings, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Question } from '@/types/quiz';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CreateQuiz() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export default function CreateQuiz() {
     setQuestions(questions.filter(q => q.id !== id));
   };
 
-  const saveQuiz = () => {
+  const saveQuiz = async () => {
     // Validation with specific error messages
     if (!quizTitle.trim()) {
       toast({
@@ -103,9 +104,51 @@ export default function CreateQuiz() {
     }
 
     try {
-      const quizId = Math.random().toString(36).substr(2, 9);
-      const pin = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate proper UUID for the quiz
+      const quizId = crypto.randomUUID();
       
+      // Save quiz to Supabase
+      const tempHostId = crypto.randomUUID();
+      const { error: quizError } = await supabase
+        .from('quizzes')
+        .insert({
+          id: quizId,
+          title: quizTitle.trim(),
+          description: quizDescription.trim(),
+          user_id: tempHostId // Temporary for anonymous users
+        });
+
+      if (quizError) {
+        throw new Error('Failed to save quiz to database');
+      }
+
+      // Save questions to Supabase
+      const questionsData = questions.sort((a, b) => a.order - b.order).map(q => ({
+        id: crypto.randomUUID(),
+        quiz_id: quizId,
+        question_text: q.question,
+        options: {
+          type: q.type,
+          answers: (q as any).answers || [],
+          correctAnswer: (q as any).correctAnswer,
+          items: (q as any).items || [],
+          options: (q as any).options || [],
+          hotspots: (q as any).hotspots || [],
+          imageUrl: (q as any).imageUrl || null,
+          points: q.points || 1000
+        },
+        time_limit: q.timeLimit || 20
+      }));
+
+      const { error: questionsError } = await supabase
+        .from('questions')
+        .insert(questionsData);
+
+      if (questionsError) {
+        throw new Error('Failed to save questions to database');
+      }
+
+      // Store additional metadata in localStorage for compatibility
       const quizData = {
         id: quizId,
         title: quizTitle.trim(),
@@ -113,42 +156,10 @@ export default function CreateQuiz() {
         questions: questions.sort((a, b) => a.order - b.order),
         backgroundTheme: customBackground ? 'custom' : backgroundTheme,
         customBackground,
-        pin,
         createdAt: new Date().toISOString()
       };
       
-      // Try to save to localStorage with error handling for quota exceeded
-      const quizDataString = JSON.stringify(quizData);
-      
-      try {
-        localStorage.setItem(`quiz_${quizId}`, quizDataString);
-        // Store PIN mapping for joining
-        localStorage.setItem(`pin_${pin}`, quizId);
-      } catch (storageError: any) {
-        if (storageError.name === 'QuotaExceededError') {
-          // If storage quota exceeded, try to clear some old quiz data
-          const keys = Object.keys(localStorage).filter(key => key.startsWith('quiz_'));
-          if (keys.length > 5) {
-            // Remove oldest quizzes to make space
-            keys.slice(0, Math.floor(keys.length / 2)).forEach(key => {
-              localStorage.removeItem(key);
-            });
-            
-            // Try saving again
-            try {
-              localStorage.setItem(`quiz_${quizId}`, quizDataString);
-              // Store PIN mapping for joining
-              localStorage.setItem(`pin_${pin}`, quizId);
-            } catch (secondAttemptError) {
-              throw new Error('Storage quota exceeded. Please try creating a quiz with fewer or smaller questions.');
-            }
-          } else {
-            throw new Error('Storage quota exceeded. Please try creating a quiz with fewer or smaller questions.');
-          }
-        } else {
-          throw storageError;
-        }
-      }
+      localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
       
       toast({
         title: "Quiz Saved Successfully!",

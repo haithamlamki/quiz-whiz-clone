@@ -31,44 +31,59 @@ export default function QuizSaved() {
       if (!quizId) return;
 
       try {
-        // First check localStorage for quiz data
-        const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+        // First try to fetch from Supabase
+        const { data: supabaseQuiz, error: fetchError } = await supabase
+          .from('quizzes')
+          .select(`
+            id,
+            title,
+            description,
+            questions (
+              id,
+              question_text,
+              options,
+              time_limit
+            )
+          `)
+          .eq('id', quizId)
+          .single();
+
         let quizData = null;
         
-        if (savedQuizData) {
-          quizData = JSON.parse(savedQuizData);
+        if (supabaseQuiz && !fetchError) {
+          // Quiz found in Supabase
+          quizData = {
+            id: supabaseQuiz.id,
+            title: supabaseQuiz.title,
+            description: supabaseQuiz.description,
+            questions: supabaseQuiz.questions.map((q: any) => ({
+              id: q.id,
+              question: q.question_text,
+              type: q.options?.type || 'multiple-choice',
+              timeLimit: q.time_limit,
+              points: q.options?.points || 1000,
+              ...q.options
+            })),
+            backgroundTheme: 'classroom'
+          };
         } else {
-          // If not in localStorage, try to fetch from Supabase
-          const { data } = await supabase
-            .from('quizzes')
-            .select(`
-              id,
-              title,
-              description,
-              questions (*)
-            `)
-            .eq('id', quizId)
-            .single();
-          
-          if (data) {
-            quizData = {
-              id: data.id,
-              title: data.title,
-              description: data.description,
-              questions: data.questions,
-              backgroundTheme: 'classroom', // default
-            };
+          // Fallback to localStorage for backward compatibility
+          const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
+          if (savedQuizData) {
+            quizData = JSON.parse(savedQuizData);
           }
         }
 
-        if (!quizData) return;
+        if (!quizData) {
+          console.error('Quiz not found in database or localStorage');
+          return;
+        }
 
         // Generate PIN and create game session in Supabase
         const { data: pinData } = await supabase.rpc('generate_game_pin');
         const gamePin = pinData;
 
         // Create game in Supabase
-        // Generate a temporary UUID for anonymous hosts since host_id must be UUID
         const tempHostId = crypto.randomUUID();
         const { error: gameError } = await supabase
           .from('games')
@@ -81,7 +96,7 @@ export default function QuizSaved() {
 
         if (gameError) {
           console.error('Error creating game:', gameError);
-          return;
+          throw new Error('Failed to create game session');
         }
 
         // Update quiz data with PIN
@@ -100,11 +115,16 @@ export default function QuizSaved() {
 
       } catch (error) {
         console.error('Error loading quiz and creating game:', error);
+        toast({
+          title: "Error Loading Quiz",
+          description: "Failed to load quiz data. Please try again.",
+          variant: "destructive"
+        });
       }
     };
 
     loadQuizAndCreateGame();
-  }, [quizId]);
+  }, [quizId, toast]);
 
   const copyPin = () => {
     if (quiz) {
