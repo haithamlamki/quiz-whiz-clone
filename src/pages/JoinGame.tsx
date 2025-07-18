@@ -29,7 +29,6 @@ export default function JoinGame() {
           .from('games')
           .select('id, quiz_id, status')
           .eq('game_pin', pin)
-          .eq('is_active', true)
           .single();
 
         if (gameError || !game) {
