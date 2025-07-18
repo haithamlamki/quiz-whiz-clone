@@ -305,10 +305,18 @@ export default function PlayGame() {
       
       // Update player score in database using the increment function
       if (player) {
-        await supabase.rpc('increment_player_score', {
-          player_id_in: player.id,
-          score_to_add: questionScore
-        });
+        try {
+          const { error } = await supabase.rpc('increment_player_score', {
+            player_id_in: player.id,
+            score_to_add: questionScore
+          });
+          
+          if (error) {
+            console.error('Failed to update player score:', error);
+          }
+        } catch (error) {
+          console.error('Error updating player score:', error);
+        }
       }
     } else {
       setStreak(0);
