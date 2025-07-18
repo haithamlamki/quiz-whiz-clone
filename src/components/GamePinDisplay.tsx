@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, QrCode, Share2, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import QRCode from 'qrcode';
 
 interface GamePinDisplayProps {
   pin: string;
@@ -23,8 +24,32 @@ export const GamePinDisplay: React.FC<GamePinDisplayProps> = ({
   className = ""
 }) => {
   const [copied, setCopied] = useState(false);
+  const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null);
 
   const gameUrl = `${window.location.origin}/join/${pin}`;
+
+  // Generate QR code when PIN changes
+  useEffect(() => {
+    const generateQR = async () => {
+      try {
+        const qrDataURL = await QRCode.toDataURL(gameUrl, {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+        setGeneratedQRCode(qrDataURL);
+      } catch (error) {
+        console.error('Error generating QR code:', error);
+      }
+    };
+
+    if (pin) {
+      generateQR();
+    }
+  }, [pin, gameUrl]);
 
   const copyPin = async () => {
     try {
@@ -91,17 +116,16 @@ export const GamePinDisplay: React.FC<GamePinDisplayProps> = ({
       <CardContent className="p-8 text-center">
         {/* QR Code */}
         <div className="bg-white p-6 rounded-xl shadow-inner mb-6 inline-block">
-          <div className="w-48 h-48 bg-white rounded-lg relative overflow-hidden">
-            {qrCodeUrl ? (
-              <img src={qrCodeUrl} alt="QR Code" className="w-full h-full" />
+          <div className="w-48 h-48 bg-white rounded-lg relative overflow-hidden flex items-center justify-center">
+            {qrCodeUrl || generatedQRCode ? (
+              <img 
+                src={qrCodeUrl || generatedQRCode || ''} 
+                alt="QR Code" 
+                className="w-full h-full object-contain" 
+              />
             ) : (
-              <div className="grid grid-cols-10 gap-0 w-full h-full">
-                {qrPattern.map((filled, index) => (
-                  <div
-                    key={index}
-                    className={`${filled ? 'bg-black' : 'bg-white'} transition-colors`}
-                  />
-                ))}
+              <div className="flex items-center justify-center text-gray-400">
+                <QrCode className="h-12 w-12" />
               </div>
             )}
           </div>

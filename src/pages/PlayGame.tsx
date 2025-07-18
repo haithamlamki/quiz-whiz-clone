@@ -124,18 +124,16 @@ export default function PlayGame() {
             id: q.id,
             question_text: q.question_text,
             time_limit: q.time_limit || 20,
-            options: Array.isArray(q.options?.options) 
-              ? q.options.options.map((opt: string, idx: number) => ({
-                  text: opt,
-                  isCorrect: q.options?.type === 'true-false' 
-                    ? (idx === 0 ? q.options.correctAnswer === true : q.options.correctAnswer === false)
-                    : q.options?.correctAnswer === idx
-                }))
-              : q.options?.type === 'true-false'
+            options: q.options?.type === 'true-false'
               ? [
                   { text: 'True', isCorrect: q.options.correctAnswer === true },
                   { text: 'False', isCorrect: q.options.correctAnswer === false }
                 ]
+              : q.options?.type === 'multiple-choice' && Array.isArray(q.options?.answers)
+              ? q.options.answers.map((answer: string, idx: number) => ({
+                  text: answer,
+                  isCorrect: q.options?.correctAnswer === idx
+                }))
               : [
                   { text: 'Option 1', isCorrect: true },
                   { text: 'Option 2', isCorrect: false },
