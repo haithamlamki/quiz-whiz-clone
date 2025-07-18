@@ -161,7 +161,16 @@ export default function HostDashboard() {
               
               {/* Settings */}
               <div className="flex gap-3">
-                <PinGenerator onPinGenerated={setPin} />
+                <PinGenerator onPinGenerated={(newPin) => {
+                  setPin(newPin);
+                  // Update the quiz data with new PIN
+                  if (quiz && quizId) {
+                    const updatedQuiz = { ...quiz, pin: newPin };
+                    setQuiz(updatedQuiz);
+                    localStorage.setItem(`quiz_${quizId}`, JSON.stringify(updatedQuiz));
+                    localStorage.setItem(`pin_${newPin}`, quizId);
+                  }
+                }} />
                 <Button
                   variant="outline"
                   onClick={() => navigate('/create')}

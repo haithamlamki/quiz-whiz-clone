@@ -122,6 +122,8 @@ export default function CreateQuiz() {
       
       try {
         localStorage.setItem(`quiz_${quizId}`, quizDataString);
+        // Store PIN mapping for joining
+        localStorage.setItem(`pin_${pin}`, quizId);
       } catch (storageError: any) {
         if (storageError.name === 'QuotaExceededError') {
           // If storage quota exceeded, try to clear some old quiz data
@@ -135,6 +137,8 @@ export default function CreateQuiz() {
             // Try saving again
             try {
               localStorage.setItem(`quiz_${quizId}`, quizDataString);
+              // Store PIN mapping for joining
+              localStorage.setItem(`pin_${pin}`, quizId);
             } catch (secondAttemptError) {
               throw new Error('Storage quota exceeded. Please try creating a quiz with fewer or smaller questions.');
             }

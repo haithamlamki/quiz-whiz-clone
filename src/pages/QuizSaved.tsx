@@ -32,6 +32,11 @@ export default function QuizSaved() {
       const quizData = JSON.parse(savedQuizData);
       setQuiz(quizData);
       
+      // Ensure PIN mapping is stored for joining
+      if (quizData.pin) {
+        localStorage.setItem(`pin_${quizData.pin}`, quizId);
+      }
+      
       // Generate QR code
       const joinUrl = `${window.location.origin}/join/${quizData.pin}`;
       QRCode.toDataURL(joinUrl, { width: 200, margin: 2 })
