@@ -84,8 +84,9 @@ export default function HostDashboard() {
   }, [resetBackground]);
 
   const currentQuestion = quiz?.questions?.[currentQuestionIndex] || sampleQuiz.questions[currentQuestionIndex];
+  const totalQuestions = quiz?.questions?.length || sampleQuiz.questions.length;
   const answeredCount = players.filter(p => p.answered).length;
-  const answerProgress = (answeredCount / players.length) * 100;
+  const answerProgress = players.length > 0 ? (answeredCount / players.length) * 100 : 0;
 
   useEffect(() => {
     if (gameState === 'question' && timeLeft > 0 && !isPaused) {
@@ -105,7 +106,7 @@ export default function HostDashboard() {
       setCurrentQuestionIndex(prev => prev + 1);
       setGameState('question');
       const nextQ = quiz?.questions?.[currentQuestionIndex + 1] || sampleQuiz.questions[currentQuestionIndex + 1];
-      setTimeLeft(nextQ.timeLimit);
+      setTimeLeft(nextQ.timeLimit || 20);
       // Reset answered status
       setPlayers(prev => prev.map(p => ({ ...p, answered: false })));
     } else {
@@ -267,7 +268,7 @@ export default function HostDashboard() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <span className="text-lg font-bold">
-                      Question {currentQuestionIndex + 1} of {quiz?.questions?.length || sampleQuiz.questions.length}
+                      Question {currentQuestionIndex + 1} of {totalQuestions}
                     </span>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
@@ -336,7 +337,7 @@ export default function HostDashboard() {
                 <Leaderboard 
                   players={players}
                   currentQuestionNumber={currentQuestionIndex + 1}
-                  totalQuestions={quiz?.questions?.length || sampleQuiz.questions.length}
+                  totalQuestions={totalQuestions}
                 />
               </CardContent>
             </Card>
