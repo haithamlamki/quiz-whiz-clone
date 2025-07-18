@@ -70,10 +70,24 @@ export default function HostDashboard() {
         const quizData = JSON.parse(savedQuizData);
         setQuiz(quizData);
         
+        // Use quiz ID as PIN if no PIN exists, or generate one
+        if (!quizData.pin) {
+          quizData.pin = quizId;
+          localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
+        }
+        setPin(quizData.pin);
+        
+        // Store PIN mapping for easy lookup
+        localStorage.setItem(`pin_${quizData.pin}`, quizId);
+        
         // Set background based on quiz data
         if (quizData.customBackground) {
           setQuizBackground('custom', quizData.customBackground);
         }
+      } else {
+        // If quiz not found, use the quizId as both quiz and PIN
+        setPin(quizId);
+        localStorage.setItem(`pin_${quizId}`, quizId);
       }
     }
   }, [quizId, setQuizBackground]);

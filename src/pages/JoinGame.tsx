@@ -17,6 +17,15 @@ export default function JoinGame() {
     if (!playerName.trim()) return;
     
     setIsJoining(true);
+    
+    // Check if the PIN corresponds to a valid quiz
+    const quizId = localStorage.getItem(`pin_${pin}`);
+    if (!quizId) {
+      alert('Game not found. Please check the PIN.');
+      setIsJoining(false);
+      return;
+    }
+    
     // Simulate joining game and redirect to lobby
     setTimeout(() => {
       navigate(`/lobby/${pin}/${encodeURIComponent(playerName)}`);
@@ -107,13 +116,33 @@ export default function JoinGame() {
           <Card className="mt-6 bg-white/80 backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                <h3 className="font-semibold">Game: General Knowledge Quiz</h3>
-                <p className="text-sm text-muted-foreground">
-                  15 questions • Mixed topics • 20 seconds per question
-                </p>
+                {(() => {
+                  const quizId = localStorage.getItem(`pin_${pin}`);
+                  const quizData = quizId ? JSON.parse(localStorage.getItem(`quiz_${quizId}`) || '{}') : null;
+                  
+                  if (quizData && quizData.title) {
+                    return (
+                      <>
+                        <h3 className="font-semibold">Game: {quizData.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {quizData.questions?.length || 0} questions • Mixed topics • Timed questions
+                        </p>
+                      </>
+                    );
+                  } else {
+                    return (
+                      <>
+                        <h3 className="font-semibold">Game: General Knowledge Quiz</h3>
+                        <p className="text-sm text-muted-foreground">
+                          15 questions • Mixed topics • 20 seconds per question
+                        </p>
+                      </>
+                    );
+                  }
+                })()}
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>12 players waiting</span>
+                  <span>Waiting for players...</span>
                 </div>
               </div>
             </CardContent>

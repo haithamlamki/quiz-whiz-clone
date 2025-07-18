@@ -177,11 +177,6 @@ export const PinGenerator: React.FC<PinGeneratorProps> = ({
     return pin;
   };
 
-  useEffect(() => {
-    // Generate initial PIN
-    generatePin();
-  }, []);
-
   return (
     <Button variant="outline" onClick={generatePin} className="flex items-center gap-2">
       <Users className="h-4 w-4" />
