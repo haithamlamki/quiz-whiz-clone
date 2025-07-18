@@ -18,35 +18,23 @@ export default function JoinGame() {
     
     setIsJoining(true);
     
-    // Debug: Log what we're looking for
-    console.log('Looking for PIN:', pin);
-    console.log('All localStorage keys:', Object.keys(localStorage));
-    
     // Check if the PIN corresponds to a valid quiz
     let quizId = localStorage.getItem(`pin_${pin}`);
-    console.log('Direct PIN mapping result:', quizId);
     
     // Fallback: search through all quizzes if direct mapping doesn't exist
     if (!quizId) {
-      console.log('Direct mapping not found, searching through all quizzes...');
       const allKeys = Object.keys(localStorage);
       const quizKeys = allKeys.filter(key => key.startsWith('quiz_'));
-      console.log('Found quiz keys:', quizKeys);
       
       for (const key of quizKeys) {
         try {
           const quizDataString = localStorage.getItem(key);
-          console.log(`Checking ${key}:`, quizDataString);
           const quizData = JSON.parse(quizDataString || '{}');
-          console.log(`Quiz data for ${key}:`, quizData);
-          console.log(`PIN comparison: ${quizData.pin} === ${pin}?`, quizData.pin === pin);
           
           if (quizData.pin === pin) {
             quizId = key.replace('quiz_', '');
-            console.log('Found matching quiz! ID:', quizId);
             // Store the mapping for future use
             localStorage.setItem(`pin_${pin}`, quizId);
-            console.log('Stored PIN mapping for future use');
             break;
           }
         } catch (error) {
@@ -55,10 +43,7 @@ export default function JoinGame() {
       }
     }
     
-    console.log('Final quizId:', quizId);
-    
     if (!quizId) {
-      console.error('No quiz found for PIN:', pin);
       alert('Game not found. Please check the PIN.');
       setIsJoining(false);
       return;

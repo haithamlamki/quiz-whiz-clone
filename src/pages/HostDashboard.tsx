@@ -64,34 +64,44 @@ export default function HostDashboard() {
 
   // Load quiz data and set background
   useEffect(() => {
-    console.log('HostDashboard: Loading quiz with ID:', quizId);
-    console.log('HostDashboard: All localStorage keys:', Object.keys(localStorage));
     if (quizId) {
       const savedQuizData = localStorage.getItem(`quiz_${quizId}`);
-      console.log('HostDashboard: Looking for quiz data with key:', `quiz_${quizId}`);
-      console.log('HostDashboard: Found quiz data:', savedQuizData);
       if (savedQuizData) {
         const quizData = JSON.parse(savedQuizData);
         setQuiz(quizData);
         
-        // Use quiz ID as PIN if no PIN exists, or generate one
+        // Use existing PIN or use quiz ID as PIN if no PIN exists
+        let currentPin = quizData.pin || quizId;
+        setPin(currentPin);
+        
+        // ALWAYS store PIN mapping - this is critical for joining to work
+        localStorage.setItem(`pin_${currentPin}`, quizId);
+        
+        // Update quiz data if PIN was missing
         if (!quizData.pin) {
-          quizData.pin = quizId;
+          quizData.pin = currentPin;
           localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
         }
-        setPin(quizData.pin);
-        
-        // Store PIN mapping for easy lookup
-        localStorage.setItem(`pin_${quizData.pin}`, quizId);
         
         // Set background based on quiz data
         if (quizData.customBackground) {
           setQuizBackground('custom', quizData.customBackground);
         }
       } else {
-        // If quiz not found, use the quizId as both quiz and PIN
-        setPin(quizId);
-        localStorage.setItem(`pin_${quizId}`, quizId);
+        // If quiz not found, create minimal structure with PIN
+        const currentPin = quizId;
+        setPin(currentPin);
+        localStorage.setItem(`pin_${currentPin}`, quizId);
+        
+        // Create minimal quiz structure 
+        const minimalQuiz = {
+          id: quizId,
+          title: 'Sample Quiz',
+          pin: currentPin,
+          questions: []
+        };
+        setQuiz(minimalQuiz);
+        localStorage.setItem(`quiz_${quizId}`, JSON.stringify(minimalQuiz));
       }
     }
   }, [quizId, setQuizBackground]);
