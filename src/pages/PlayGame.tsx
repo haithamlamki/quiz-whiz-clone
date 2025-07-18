@@ -269,22 +269,32 @@ export default function PlayGame() {
     const correctAnswerIndex = currentQuestion.options.findIndex(option => option.isCorrect);
     const isCorrect = selectedAnswer === correctAnswerIndex;
     
+    console.log('Answer check:', {
+      selectedAnswer,
+      correctAnswerIndex,
+      isCorrect,
+      options: currentQuestion.options,
+      currentQuestion: currentQuestion.question_text
+    });
+    
     // Use dynamic points from question or default to 1000
     const basePoints = currentQuestion.points || 1000;
+    let questionScore = 0;
     
-    // Calculate score with speed bonus and streak multiplier
+    // Calculate score with speed bonus and streak multiplier only for correct answers
     if (isCorrect) {
       const responseTime = Date.now() - questionStartTime;
       const speedBonus = Math.max(0, currentQuestion.time_limit * 1000 - responseTime) / 100;
       const streakMultiplier = 1 + (streak * 0.1);
-      const questionScore = Math.floor((basePoints + speedBonus) * streakMultiplier);
+      questionScore = Math.floor((basePoints + speedBonus) * streakMultiplier);
       
       console.log('Score calculation:', {
         basePoints,
         speedBonus,
         streakMultiplier,
         questionScore,
-        responseTime
+        responseTime,
+        timeLimit: currentQuestion.time_limit
       });
       
       const newScore = score + questionScore;
@@ -308,7 +318,7 @@ export default function PlayGame() {
     // Record the answer with accurate timing
     if (player && currentQuestion) {
       const responseTime = Date.now() - questionStartTime;
-      console.log(`Answer recorded - Response time: ${responseTime}ms (${(responseTime / 1000).toFixed(2)}s)`);
+      console.log(`Answer recorded - Response time: ${responseTime}ms, Score awarded: ${questionScore}`);
       
       await supabase
         .from('answers')
@@ -316,7 +326,7 @@ export default function PlayGame() {
           player_id: player.id,
           question_id: currentQuestion.id,
           is_correct: isCorrect,
-          score_awarded: isCorrect ? (currentQuestion.points || 1000) : 0,
+          score_awarded: questionScore, // Use the calculated score, not base points
           time_taken_ms: responseTime
         });
     }
