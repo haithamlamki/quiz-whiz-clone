@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Medal, Award, Home, RotateCcw, Loader2, Download } from 'lucide-react';
+import { Trophy, Medal, Award, Loader2, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -564,31 +564,14 @@ export default function FinalResults() {
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Button 
-              variant="game" 
-              size="lg"
-              onClick={generatePDF}
-              disabled={!gameData || !questions.length}
-            >
-              <Download className="h-5 w-5" />
-              Download PDF Report
-            </Button>
+          <div className="flex justify-center">
             <Button 
               variant="game" 
               size="lg"
               onClick={() => navigate('/')}
             >
-              <Home className="h-5 w-5" />
-              Home
-            </Button>
-            <Button 
-              variant="game" 
-              size="lg"
-              onClick={() => navigate('/create')}
-            >
-              <RotateCcw className="h-5 w-5" />
-              Create New Quiz
+              <Users className="h-5 w-5" />
+              Join New Game
             </Button>
           </div>
         </div>
