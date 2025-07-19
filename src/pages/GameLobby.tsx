@@ -107,49 +107,52 @@ export default function GameLobby() {
   useEffect(() => {
     if (!game?.id || !pin) return;
 
-    console.log(`🔄 Setting up game monitoring for PIN: ${pin}, GameID: ${game.id}`);
-    console.log(`🔄 Anonymous user status: ${true} (no auth required for game status)`);
+    console.log(`🔄 [GUEST] Setting up game monitoring for PIN: ${String(pin).trim()}, GameID: ${game.id}`);
+    console.log(`🔄 [GUEST] Player: ${playerName}, Anonymous: true`);
+    console.table({ role: 'GUEST', gamePin: String(pin).trim(), rowStatus: game.status });
 
     let pollInterval: NodeJS.Timeout;
     let playerUpdateTimeout: NodeJS.Timeout;
     let gameChannel: any;
+    let broadcastChannel: any;
 
-    // Robust polling function - primary method for anonymous players
+    // PRIMARY: Robust polling function for anonymous players
     const pollGameStatus = async () => {
       try {
-        console.log(`🔍 Polling game status for PIN: ${pin}`);
+        console.log(`🔍 [GUEST] Polling game status for PIN: ${String(pin).trim()}`);
         
-        // Direct query by game PIN (more reliable than using game ID)
+        // Direct query by game PIN with string consistency
         const { data: gameData, error } = await supabase
           .from('games')
           .select('*')
-          .eq('game_pin', pin)
+          .eq('game_pin', String(pin).trim())
           .single();
 
         if (error) {
-          console.error('❌ Error polling game status:', error);
+          console.error('❌ [GUEST] Error polling game status:', error);
           return;
         }
 
         if (gameData) {
-          console.log(`📊 Polled game status: ${gameData.status} (current: ${game.status})`);
+          console.log(`📊 [GUEST] Polled game status: ${gameData.status} (current: ${game.status})`);
+          console.table({ polledStatus: gameData.status, currentStatus: game.status, questionIndex: gameData.current_question_index });
           
           // Update game state if it changed
           if (gameData.status !== game.status || gameData.current_question_index !== game.current_question_index) {
-            console.log(`🔄 Game state changed - Status: ${gameData.status}, Question: ${gameData.current_question_index}`);
+            console.log(`🔄 [GUEST] Game state changed - Status: ${gameData.status}, Question: ${gameData.current_question_index}`);
             setGame(gameData);
           }
           
-          // Check if game started
+          // Check if game started - using 'playing' status to match host
           if (gameData.status === 'playing' && !gameStarted) {
-            console.log('🚀 GAME STARTED DETECTED! Initiating countdown...');
+            console.log('🚀 [GUEST] GAME STARTED DETECTED via polling! Initiating countdown...');
             setGameStarted(true);
             startCountdown();
             clearInterval(pollInterval); // Stop polling once game starts
           }
         }
       } catch (error) {
-        console.error('❌ Polling exception:', error);
+        console.error('❌ [GUEST] Polling exception:', error);
       }
     };
 
@@ -157,12 +160,13 @@ export default function GameLobby() {
     pollGameStatus();
     pollInterval = setInterval(pollGameStatus, 2000);
 
-    // Secondary: Real-time subscription (as backup/enhancement)
+    // SECONDARY: Real-time subscription and broadcast listening
     const setupRealtime = () => {
-      console.log('🔄 Setting up real-time subscription as secondary method...');
+      console.log('🔄 [GUEST] Setting up real-time subscriptions as secondary method...');
       
+      // Listen for database changes
       gameChannel = supabase
-        .channel(`game-lobby-${game.id}-${Date.now()}`) // Unique channel name
+        .channel(`game-lobby-${game.id}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -172,18 +176,40 @@ export default function GameLobby() {
             filter: `id=eq.${game.id}`
           },
           (payload) => {
-            console.log('📡 Real-time game update received:', payload.new);
+            console.log('📡 [GUEST] Real-time game update received:', payload.new);
             const updatedGame = payload.new as Game;
             setGame(updatedGame);
             
             if (updatedGame.status === 'playing' && !gameStarted) {
-              console.log('🚀 GAME STARTED VIA REALTIME! Initiating countdown...');
+              console.log('🚀 [GUEST] GAME STARTED VIA REALTIME! Initiating countdown...');
               setGameStarted(true);
               startCountdown();
-              clearInterval(pollInterval); // Stop polling
+              clearInterval(pollInterval);
             }
           }
         )
+        .subscribe((status) => {
+          console.log('📡 [GUEST] GameLobby DB subscription status:', status);
+        });
+
+      // Listen for broadcast events from host
+      broadcastChannel = supabase
+        .channel(`game:${pin}`)
+        .on('broadcast', { event: 'game_started' }, (payload) => {
+          console.log('📻 [GUEST] Received broadcast:', payload);
+          if (!gameStarted) {
+            console.log('🚀 [GUEST] GAME STARTED VIA BROADCAST! Initiating countdown...');
+            setGameStarted(true);
+            startCountdown();
+            clearInterval(pollInterval);
+          }
+        })
+        .subscribe((status) => {
+          console.log('📻 [GUEST] Broadcast subscription status:', status);
+        });
+
+      // Player updates subscription
+      gameChannel
         .on(
           'postgres_changes',
           {
@@ -209,15 +235,7 @@ export default function GameLobby() {
             clearTimeout(playerUpdateTimeout);
             playerUpdateTimeout = setTimeout(loadPlayers, 300);
           }
-        )
-        .subscribe((status) => {
-          console.log('📡 GameLobby real-time subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Real-time subscription active');
-          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-            console.log('⚠️ Real-time subscription failed, relying on polling');
-          }
-        });
+        );
     };
 
     // Setup real-time as secondary method
@@ -249,6 +267,9 @@ export default function GameLobby() {
       clearTimeout(playerUpdateTimeout);
       if (gameChannel) {
         supabase.removeChannel(gameChannel);
+      }
+      if (broadcastChannel) {
+        supabase.removeChannel(broadcastChannel);
       }
     };
   }, [game?.id, pin, gameStarted]);

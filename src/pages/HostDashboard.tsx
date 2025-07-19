@@ -266,28 +266,54 @@ export default function HostDashboard() {
 
   const startGame = async () => {
     try {
-      // Update game status in database
-      const { data: game } = await supabase
+      console.log('[HOST] Starting game for PIN:', String(pin).trim());
+      
+      // Update game status in database with verbose logging
+      const { data: game, error: gameSelectError } = await supabase
         .from('games')
         .select('id')
-        .eq('game_pin', pin)
+        .eq('game_pin', String(pin).trim())
         .single();
 
-      if (game) {
-        await supabase
-          .from('games')
-          .update({
-            status: 'playing',
-            current_question_index: 0
-          })
-          .eq('id', game.id);
+      if (gameSelectError || !game) {
+        console.error('[HOST] Error finding game:', gameSelectError);
+        return;
       }
+
+      console.log('[HOST] Found game ID:', game.id);
+
+      const { data: updateResult, error: updateError } = await supabase
+        .from('games')
+        .update({
+          status: 'playing',
+          current_question_index: 0
+        })
+        .eq('id', game.id)
+        .select();
+
+      console.log('[HOST] Update result:', { data: updateResult, error: updateError });
+
+      if (updateError) {
+        console.error('[HOST] Error updating game:', updateError);
+        return;
+      }
+
+      // Fire realtime broadcast to all players
+      console.log('[HOST] Broadcasting game_started event to channel game:' + pin);
+      const channel = supabase.channel(`game:${pin}`);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_started',
+        payload: { status: 'playing', gamePin: pin }
+      });
 
       setGameState('question');
       setCurrentQuestionIndex(0);
       setTimeLeft(currentQuestion.timeLimit || 20);
+      
+      console.log('[HOST] Game started successfully');
     } catch (error) {
-      console.error('Error starting game:', error);
+      console.error('[HOST] Error starting game:', error);
     }
   };
 
