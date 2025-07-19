@@ -327,7 +327,7 @@ export default function FinalResults() {
           lineWidth: 0.5
         },
         headStyles: { 
-          fillColor: [22, 160, 133], 
+          fillColor: [0, 135, 184], 
           textColor: [255, 255, 255],
           fontSize: 10,
           fontStyle: 'bold'
@@ -392,7 +392,7 @@ export default function FinalResults() {
           lineWidth: 0.5
         },
         headStyles: { 
-          fillColor: [22, 160, 133],
+          fillColor: [0, 135, 184],
           textColor: [255, 255, 255],
           fontSize: 11,
           fontStyle: 'bold'
