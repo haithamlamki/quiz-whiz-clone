@@ -188,9 +188,14 @@ export default function PlayGame() {
     loadGameData();
   }, [pin, playerName, navigate]);
 
+  // Compute derived state outside of useEffect to avoid dependency issues
+  const hasQuestions = Array.isArray(quiz?.questions) && quiz.questions.length > 0;
+  const currentQuestion = hasQuestions ? quiz.questions[currentQuestionIndex] : null;
+  const isLastQuestion = hasQuestions ? currentQuestionIndex === quiz.questions.length - 1 : false;
+
   // Subscribe to real-time game updates with robust fallback
   useEffect(() => {
-    if (!game?.id || !pin) return;
+    if (!game?.id || !pin || !hasQuestions) return; // Wait for both game data AND quiz questions
 
     console.log(`🎮 Setting up PlayGame monitoring for PIN: ${pin}, GameID: ${game.id}`);
     console.log(`🎮 Current game state: ${gameState}, Question index: ${currentQuestionIndex}`);
@@ -357,20 +362,18 @@ export default function PlayGame() {
         supabase.removeChannel(gameChannel);
       }
     };
-  }, [game?.id, pin, gameState, currentQuestionIndex, navigate]);
+  }, [game?.id, pin, gameState, currentQuestionIndex, navigate, hasQuestions]);
 
-  const currentQuestion = quiz?.questions[currentQuestionIndex] || null;
-  
   // Debug logging for question state
   console.log('[PlayGame] Debug:', {
     gameState,
     currentQuestionIndex,
     hasQuiz: !!quiz,
+    hasQuestions,
     questionsLength: quiz?.questions?.length,
     hasCurrentQuestion: !!currentQuestion,
     questionId: currentQuestion?.id
   });
-  const isLastQuestion = quiz ? currentQuestionIndex === quiz.questions.length - 1 : false;
 
   useEffect(() => {
     if (gameState === 'question') {
@@ -563,7 +566,8 @@ export default function PlayGame() {
     );
   }
 
-  if (gameState === 'waiting') {
+  // Show waiting screen if game is waiting OR if we don't have questions loaded yet
+  if (gameState === 'waiting' || !hasQuestions) {
     return (
       <div className="min-h-screen" style={{
         backgroundImage: 'var(--gradient-classroom)',
@@ -575,8 +579,12 @@ export default function PlayGame() {
           <Card className="bg-white/95 backdrop-blur-sm shadow-game">
             <CardContent className="p-8 text-center">
               <div className="animate-pulse text-4xl mb-4">🎮</div>
-              <h2 className="text-2xl font-bold mb-2">Get Ready!</h2>
-              <p className="text-muted-foreground mb-4">The game is about to start...</p>
+              <h2 className="text-2xl font-bold mb-2">
+                {!hasQuestions ? 'Loading Quiz...' : 'Get Ready!'}
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                {!hasQuestions ? 'Please wait while we load the quiz questions' : 'The game is about to start...'}
+              </p>
               <div className="text-lg font-semibold">Welcome, {decodeURIComponent(playerName || '')}!</div>
             </CardContent>
           </Card>
@@ -585,8 +593,8 @@ export default function PlayGame() {
     );
   }
 
-  // Safety check - if no current question AND we're supposed to be showing a question, show error
-  if (!currentQuestion && gameState === 'question' && currentQuestionIndex >= 0) {
+  // Safety check - if we reach here, we should have both questions and be in question state
+  if (!currentQuestion) {
     return (
       <div className="min-h-screen" style={{
         backgroundImage: 'var(--gradient-classroom)',
@@ -599,29 +607,7 @@ export default function PlayGame() {
             <CardContent className="p-8 text-center">
               <div className="text-4xl mb-4">❌</div>
               <h2 className="text-2xl font-bold mb-2">Game Error</h2>
-              <p className="text-muted-foreground mb-4">Question not found</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // If gameState is 'question' but we don't have a valid question yet, show loading
-  if (gameState === 'question' && !currentQuestion) {
-    return (
-      <div className="min-h-screen" style={{
-        backgroundImage: 'var(--gradient-classroom)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
-            <CardContent className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Loading Question...</h2>
-              <p className="text-muted-foreground">Please wait</p>
+              <p className="text-muted-foreground mb-4">Question not found (Index: {currentQuestionIndex})</p>
             </CardContent>
           </Card>
         </div>
