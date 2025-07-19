@@ -220,221 +220,233 @@ export default function FinalResults() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    // 1. Header Section with Logo and Branding
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 188, 125); // Brand green color
-    doc.text('ABRAJ QUIZ', 40, 40);
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text('Powered by QuizMaster', 40, 58);
-
-    // 2. Quiz Title (Centered)
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(40, 40, 40);
-    doc.text(gameData.quiz_title || 'Quiz Report', pageWidth / 2, 45, { align: 'center' });
-
-    // 3. Date (Right side)
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    const dateStr = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    doc.text(`Report Date: ${dateStr}`, pageWidth - 40, 40, { align: 'right' });
-
-    // 4. Quiz Information Box
-    const infoBoxY = 75;
-    doc.setDrawColor(200, 200, 200);
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(40, infoBoxY, pageWidth - 80, 35, 3, 3, 'FD');
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(40, 40, 40);
-    doc.text('Quiz Information', 50, infoBoxY + 18);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Game PIN: ${pin}`, 50, infoBoxY + 32);
-    doc.text(`Total Questions: ${questions.length}`, 150, infoBoxY + 32);
-    doc.text(`Total Players: ${results.length}`, 280, infoBoxY + 32);
-    
-    if (gameData.quiz_description) {
-      doc.text(`Description: ${gameData.quiz_description.substring(0, 60)}${gameData.quiz_description.length > 60 ? '...' : ''}`, 400, infoBoxY + 32);
-    }
-
-    // 5. Questions and Answers section with all options
-    let currentY = 125;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Questions & Answers:', 40, currentY);
-
-    currentY += 20;
-
-    // Create detailed questions table
-    const questionTableData = [];
-    questions.forEach((question, index) => {
-      // Add question row
-      questionTableData.push([
-        (index + 1).toString(),
-        question.question_text,
-        ''
-      ]);
+    // 1. Header Section with ABRAJ Logo
+    const logoImg = new Image();
+    logoImg.onload = () => {
+      // Add logo to the left side of the header
+      doc.addImage(logoImg, 'PNG', 40, 20, 120, 30);
       
-      // Add answer options
-      question.options.forEach((option, optIndex) => {
-        const answerPrefix = ['A)', 'B)', 'C)', 'D)'][optIndex] || `${optIndex + 1})`;
-        const answerText = option.correct ? `✅ ${answerPrefix} ${option.text}` : `${answerPrefix} ${option.text}`;
-        questionTableData.push([
-          '',
-          answerText,
-          option.correct ? '✅ CORRECT' : ''
-        ]);
+      // Continue with the rest of the PDF generation
+      completePDFGeneration();
+    };
+    logoImg.onerror = () => {
+      // If logo fails to load, continue without it
+      completePDFGeneration();
+    };
+    logoImg.src = '/lovable-uploads/babf912f-a1b1-4a0f-a5a1-f08ff17d8a6d.png';
+
+    const completePDFGeneration = () => {
+      // Add subtitle text next to logo
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text('Quiz Report', 170, 40);
+
+      // 2. Quiz Title (Centered)
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      doc.text(gameData.quiz_title || 'Quiz Report', pageWidth / 2, 60, { align: 'center' });
+
+      // 3. Date (Right side)
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      const dateStr = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
       });
+      doc.text(`Report Date: ${dateStr}`, pageWidth - 40, 40, { align: 'right' });
+
+      // 4. Quiz Information Box
+      const infoBoxY = 80;
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(40, infoBoxY, pageWidth - 80, 35, 3, 3, 'FD');
       
-      // Add empty row for spacing
-      if (index < questions.length - 1) {
-        questionTableData.push(['', '', '']);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      doc.text('Quiz Information', 50, infoBoxY + 18);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Game PIN: ${pin}`, 50, infoBoxY + 32);
+      doc.text(`Total Questions: ${questions.length}`, 150, infoBoxY + 32);
+      doc.text(`Total Players: ${results.length}`, 280, infoBoxY + 32);
+      
+      if (gameData.quiz_description) {
+        doc.text(`Description: ${gameData.quiz_description.substring(0, 60)}${gameData.quiz_description.length > 60 ? '...' : ''}`, 400, infoBoxY + 32);
       }
-    });
 
-    (doc as any).autoTable({
-      startY: currentY,
-      head: [['#', 'Question / Answers', 'Status']],
-      body: questionTableData,
-      styles: { 
-        fontSize: 9, 
-        cellPadding: 3,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.5
-      },
-      headStyles: { 
-        fillColor: [22, 160, 133], 
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold'
-      },
-      columnStyles: {
-        0: { cellWidth: 30, halign: 'center' },
-        1: { cellWidth: 350 },
-        2: { cellWidth: 80, halign: 'center' },
-      },
-      didParseCell: (data: any) => {
-        // Style correct answers with tick marks
-        if (data.cell.text.includes('✅')) {
-          data.cell.styles.textColor = [39, 174, 96]; // Green
-          data.cell.styles.fontStyle = 'bold';
-        }
+      // 5. Questions and Answers section with all options
+      let currentY = 130;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Questions & Answers:', 40, currentY);
+
+      currentY += 20;
+
+      // Create detailed questions table
+      const questionTableData: any[] = [];
+      questions.forEach((question, index) => {
+        // Add question row
+        questionTableData.push([
+          (index + 1).toString(),
+          question.question_text,
+          ''
+        ]);
         
-        // Style "✅ CORRECT" status
-        if (data.cell.text.includes('✅ CORRECT')) {
-          data.cell.styles.fillColor = [39, 174, 96];
-          data.cell.styles.textColor = [255, 255, 255];
-          data.cell.styles.fontStyle = 'bold';
-        }
+        // Add answer options
+        question.options.forEach((option, optIndex) => {
+          const answerPrefix = ['A)', 'B)', 'C)', 'D)'][optIndex] || `${optIndex + 1})`;
+          const answerText = option.correct ? `✅ ${answerPrefix} ${option.text}` : `${answerPrefix} ${option.text}`;
+          questionTableData.push([
+            '',
+            answerText,
+            option.correct ? '✅ CORRECT' : ''
+          ]);
+        });
         
-        // Style question rows
-        if (data.column.index === 0 && data.cell.text !== '' && !isNaN(parseInt(data.cell.text))) {
-          data.cell.styles.fillColor = [240, 248, 255];
-          data.cell.styles.fontStyle = 'bold';
+        // Add empty row for spacing
+        if (index < questions.length - 1) {
+          questionTableData.push(['', '', '']);
         }
-      },
-    });
-
-    // Check if we need a new page for leaderboard
-    const leaderboardStartY = (doc as any).lastAutoTable.finalY + 30;
-    if (leaderboardStartY > pageHeight - 200) {
-      doc.addPage();
-      currentY = 50;
-    } else {
-      currentY = leaderboardStartY;
-    }
-
-    // 7. Leaderboard section
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Leaderboard:', 40, currentY);
-
-    const resultRows = results.map((r, i) => [
-      (i + 1).toString(),
-      r.name,
-      r.score.toString(),
-      `${r.correctAnswers}/${gameData.total_questions}`,
-      `${r.avgTime}s`
-    ]);
-
-    (doc as any).autoTable({
-      startY: currentY + 15,
-      head: [['Rank', 'Player Name', 'Score', 'Correct', 'Avg Time']],
-      body: resultRows,
-      styles: { 
-        fontSize: 10, 
-        cellPadding: 4,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.5
-      },
-      headStyles: { 
-        fillColor: [22, 160, 133],
-        textColor: [255, 255, 255],
-        fontSize: 11,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: {
-        0: { cellWidth: 50, halign: 'center' },
-        1: { cellWidth: 180 },
-        2: { cellWidth: 80, halign: 'center' },
-        3: { cellWidth: 80, halign: 'center' },
-        4: { cellWidth: 80, halign: 'center' },
-      },
-      didParseCell: (data: any) => {
-        // Highlight top 3 players
-        if (data.column.index === 0) {
-          const rank = parseInt(data.cell.text);
-          if (rank === 1) {
-            data.cell.styles.fillColor = [255, 215, 0]; // Gold
-            data.cell.styles.textColor = [0, 0, 0];
-          } else if (rank === 2) {
-            data.cell.styles.fillColor = [192, 192, 192]; // Silver
-            data.cell.styles.textColor = [0, 0, 0];
-          } else if (rank === 3) {
-            data.cell.styles.fillColor = [205, 127, 50]; // Bronze
-            data.cell.styles.textColor = [255, 255, 255];
-          }
-        }
-      },
-    });
-
-    // 8. Add footer with generation info
-    const finalY = (doc as any).lastAutoTable.finalY || currentY + 100;
-    if (finalY < pageHeight - 60) {
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(128, 128, 128);
-      doc.text(`Generated by ABRAJ QuizMaster - ${new Date().toLocaleString()}`, 40, pageHeight - 30);
-    }
-
-    // 9. Page numbering
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 15, {
-        align: 'center',
       });
-    }
 
-    // 10. Save and download PDF
-    const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}_${dateStr.replace(/\//g, '-')}.pdf`;
-    doc.save(fileName);
+      (doc as any).autoTable({
+        startY: currentY,
+        head: [['#', 'Question / Answers', 'Status']],
+        body: questionTableData,
+        styles: { 
+          fontSize: 9, 
+          cellPadding: 3,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.5
+        },
+        headStyles: { 
+          fillColor: [22, 160, 133], 
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 30, halign: 'center' },
+          1: { cellWidth: 350 },
+          2: { cellWidth: 80, halign: 'center' },
+        },
+        didParseCell: (data: any) => {
+          // Style correct answers with tick marks
+          if (data.cell.text.includes('✅')) {
+            data.cell.styles.textColor = [39, 174, 96]; // Green
+            data.cell.styles.fontStyle = 'bold';
+          }
+          
+          // Style "✅ CORRECT" status
+          if (data.cell.text.includes('✅ CORRECT')) {
+            data.cell.styles.fillColor = [39, 174, 96];
+            data.cell.styles.textColor = [255, 255, 255];
+            data.cell.styles.fontStyle = 'bold';
+          }
+          
+          // Style question rows
+          if (data.column.index === 0 && data.cell.text !== '' && !isNaN(parseInt(data.cell.text))) {
+            data.cell.styles.fillColor = [240, 248, 255];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+      });
+
+      // Check if we need a new page for leaderboard
+      const leaderboardStartY = (doc as any).lastAutoTable.finalY + 30;
+      if (leaderboardStartY > pageHeight - 200) {
+        doc.addPage();
+        currentY = 50;
+      } else {
+        currentY = leaderboardStartY;
+      }
+
+      // 7. Leaderboard section
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Leaderboard:', 40, currentY);
+
+      const resultRows = results.map((r, i) => [
+        (i + 1).toString(),
+        r.name,
+        r.score.toString(),
+        `${r.correctAnswers}/${gameData.total_questions}`,
+        `${r.avgTime}s`
+      ]);
+
+      (doc as any).autoTable({
+        startY: currentY + 15,
+        head: [['Rank', 'Player Name', 'Score', 'Correct', 'Avg Time']],
+        body: resultRows,
+        styles: { 
+          fontSize: 10, 
+          cellPadding: 4,
+          lineColor: [200, 200, 200],
+          lineWidth: 0.5
+        },
+        headStyles: { 
+          fillColor: [22, 160, 133],
+          textColor: [255, 255, 255],
+          fontSize: 11,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 50, halign: 'center' },
+          1: { cellWidth: 180 },
+          2: { cellWidth: 80, halign: 'center' },
+          3: { cellWidth: 80, halign: 'center' },
+          4: { cellWidth: 80, halign: 'center' },
+        },
+        didParseCell: (data: any) => {
+          // Highlight top 3 players
+          if (data.column.index === 0) {
+            const rank = parseInt(data.cell.text);
+            if (rank === 1) {
+              data.cell.styles.fillColor = [255, 215, 0]; // Gold
+              data.cell.styles.textColor = [0, 0, 0];
+            } else if (rank === 2) {
+              data.cell.styles.fillColor = [192, 192, 192]; // Silver
+              data.cell.styles.textColor = [0, 0, 0];
+            } else if (rank === 3) {
+              data.cell.styles.fillColor = [205, 127, 50]; // Bronze
+              data.cell.styles.textColor = [255, 255, 255];
+            }
+          }
+        },
+      });
+
+      // 8. Add footer with generation info
+      const finalY = (doc as any).lastAutoTable.finalY || currentY + 100;
+      if (finalY < pageHeight - 60) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(128, 128, 128);
+        doc.text(`Generated by ABRAJ QuizMaster - ${new Date().toLocaleString()}`, 40, pageHeight - 30);
+      }
+
+      // 9. Page numbering
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 15, {
+          align: 'center',
+        });
+      }
+
+      // 10. Save and download PDF
+      const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}_${dateStr.replace(/\//g, '-')}.pdf`;
+      doc.save(fileName);
+    };
   };
 
   if (loading) {
