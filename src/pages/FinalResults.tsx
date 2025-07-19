@@ -83,13 +83,14 @@ export default function FinalResults() {
           return;
         }
 
-        // Check if current user is the host
+        // Check if current user is the host (any authenticated user is considered a host)
         const { data: { user } } = await supabase.auth.getUser();
-        const isUserHost = user?.id === gameInfo.host_id;
+        const isUserHost = !!user; // Same logic as AuthContext
         console.log('[FinalResults] isHost check:', { 
           userId: user?.id, 
           hostId: gameInfo.host_id, 
-          isHost: isUserHost 
+          isHost: isUserHost,
+          authUser: !!user
         });
         setIsHost(isUserHost);
 
