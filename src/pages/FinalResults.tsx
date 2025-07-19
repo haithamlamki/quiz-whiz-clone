@@ -207,22 +207,51 @@ export default function FinalResults() {
     if (!gameData || !pin) return;
 
     try {
-      // Get the current game's quiz_id
+      // Get the current game's quiz_id and host_id
       const { data: gameInfo, error: gameError } = await supabase
         .from('games')
-        .select('quiz_id')
+        .select('quiz_id, host_id')
         .eq('game_pin', pin)
         .single();
 
       if (gameError || !gameInfo) {
-        console.error('Failed to get quiz ID');
+        console.error('Failed to get game info');
         return;
       }
 
-      // Navigate to host dashboard with the same quiz
-      navigate(`/host/${gameInfo.quiz_id}`);
+      // Generate a new game PIN and create a fresh game session
+      const { data: newGamePin, error: pinError } = await supabase.rpc('generate_game_pin');
+      
+      if (pinError || !newGamePin) {
+        console.error('Failed to generate new PIN:', pinError);
+        return;
+      }
+
+      // Create a new game with the same quiz but fresh session
+      const { data: newGame, error: createError } = await supabase
+        .from('games')
+        .insert({
+          quiz_id: gameInfo.quiz_id,
+          game_pin: newGamePin,
+          host_id: gameInfo.host_id,
+          status: 'waiting',
+          current_question_index: -1,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (createError || !newGame) {
+        console.error('Failed to create new game:', createError);
+        return;
+      }
+
+      console.log(`🎮 Created fresh game with new PIN: ${newGamePin}`);
+      
+      // Navigate to the new game lobby
+      navigate(`/game-lobby/${newGamePin}`);
     } catch (error) {
-      console.error('Error restarting quiz:', error);
+      console.error('Error creating fresh game:', error);
     }
   };
 
