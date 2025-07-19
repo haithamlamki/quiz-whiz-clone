@@ -2,22 +2,34 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
-import { Menu, X, Home, Plus, Users, Trophy, Settings, History } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Menu, X, Home, Plus, Users, Trophy, Settings, History, LogIn, LogOut } from 'lucide-react';
 
-const navigationItems = [
+const publicNavigationItems = [
+  { label: 'Home', href: '/', icon: Home },
+  { label: 'Discover', href: '/discover', icon: Users },
+];
+
+const hostNavigationItems = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Create Quiz', href: '/create', icon: Plus },
   { label: 'Quiz History', href: '/history', icon: History },
-  { label: 'Join Game', href: '/join', icon: Users },
-  { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  { label: 'Discover', href: '/discover', icon: Users },
 ];
 
 export function NavigationBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isHost, signOut } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
+  const navigationItems = isHost ? hostNavigationItems : publicNavigationItems;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200/20 shadow-lg">
@@ -61,15 +73,38 @@ export function NavigationBar() {
               <Users className="h-4 w-4" />
               Quick Join
             </Button>
-            <Button
-              variant="game"
-              size="sm"
-              onClick={() => navigate('/create')}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create
-            </Button>
+            {isHost ? (
+              <>
+                <Button
+                  variant="game"
+                  size="sm"
+                  onClick={() => navigate('/create')}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="game"
+                size="sm"
+                onClick={() => navigate('/auth')}
+                className="flex items-center gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                Host Login
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -118,18 +153,47 @@ export function NavigationBar() {
                   <Users className="h-4 w-4" />
                   Quick Join
                 </Button>
-                <Button
-                  variant="game"
-                  size="sm"
-                  onClick={() => {
-                    navigate('/create');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create Quiz
-                </Button>
+                {isHost ? (
+                  <>
+                    <Button
+                      variant="game"
+                      size="sm"
+                      onClick={() => {
+                        navigate('/create');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Quiz
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="game"
+                    size="sm"
+                    onClick={() => {
+                      navigate('/auth');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Host Login
+                  </Button>
+                )}
               </div>
             </div>
           </div>
