@@ -3,60 +3,125 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Logo from '@/components/Logo';
-import { Play, Copy, Share2, Trash2, Clock, Users, ArrowLeft } from 'lucide-react';
+import { Play, Copy, Share2, Trash2, Clock, Users, ArrowLeft, FileText, Download, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface SavedQuiz {
+interface Quiz {
   id: string;
   title: string;
-  description: string;
-  questions: any[];
-  backgroundTheme: string;
-  customBackground?: string;
-  pin: string;
-  createdAt: string;
+  description: string | null;
+  created_at: string;
+  user_id: string | null;
+  questions: { id: string }[];
+}
+
+interface QuizReport {
+  id: string;
+  quiz_id: string;
+  game_pin: string;
+  file_url: string;
+  report_title: string | null;
+  created_at: string;
+}
+
+interface QuizWithReports extends Quiz {
+  reports: QuizReport[];
 }
 
 export default function QuizHistory() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [quizzes, setQuizzes] = useState<SavedQuiz[]>([]);
+  const { user } = useAuth();
+  const [quizzes, setQuizzes] = useState<QuizWithReports[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load all quizzes from localStorage
-    const loadQuizzes = () => {
-      const allKeys = Object.keys(localStorage);
-      const quizKeys = allKeys.filter(key => key.startsWith('quiz_'));
-      
-      const loadedQuizzes: SavedQuiz[] = [];
-      quizKeys.forEach(key => {
-        try {
-          const quizData = localStorage.getItem(key);
-          if (quizData) {
-            const quiz = JSON.parse(quizData);
-            loadedQuizzes.push(quiz);
-          }
-        } catch (error) {
-          console.error('Error loading quiz:', key, error);
-        }
-      });
-      
-      // Sort by creation date (newest first)
-      loadedQuizzes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setQuizzes(loadedQuizzes);
-    };
-
     loadQuizzes();
-  }, []);
+  }, [user]);
 
-  const deleteQuiz = (quizId: string, pin: string) => {
-    if (confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
-      // Remove quiz data
-      localStorage.removeItem(`quiz_${quizId}`);
-      // Remove PIN mapping
-      localStorage.removeItem(`pin_${pin}`);
-      
+  const loadQuizzes = async () => {
+    try {
+      // Load user's quizzes with their reports
+      const { data: quizzesData, error: quizzesError } = await supabase
+        .from('quizzes')
+        .select(`
+          id,
+          title,
+          description,
+          created_at,
+          user_id,
+          questions (id)
+        `)
+        .eq('user_id', user?.id || null)
+        .order('created_at', { ascending: false });
+
+      if (quizzesError) {
+        console.error('Error loading quizzes:', quizzesError);
+        setLoading(false);
+        return;
+      }
+
+      // Load reports for each quiz
+      const quizIds = quizzesData?.map(q => q.id) || [];
+      const { data: reportsData, error: reportsError } = await supabase
+        .from('quiz_reports')
+        .select('*')
+        .in('quiz_id', quizIds)
+        .order('created_at', { ascending: false });
+
+      if (reportsError) {
+        console.error('Error loading reports:', reportsError);
+      }
+
+      // Group reports by quiz_id
+      const reportsByQuiz = (reportsData || []).reduce((acc, report) => {
+        if (!acc[report.quiz_id]) {
+          acc[report.quiz_id] = [];
+        }
+        acc[report.quiz_id].push(report);
+        return acc;
+      }, {} as Record<string, QuizReport[]>);
+
+      // Combine quizzes with their reports
+      const quizzesWithReports: QuizWithReports[] = (quizzesData || []).map(quiz => ({
+        ...quiz,
+        reports: reportsByQuiz[quiz.id] || []
+      }));
+
+      setQuizzes(quizzesWithReports);
+      setLoading(false);
+
+    } catch (error) {
+      console.error('Error loading quiz history:', error);
+      setLoading(false);
+    }
+  };
+
+  const deleteQuiz = async (quizId: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('id', quizId);
+
+      if (error) {
+        console.error('Error deleting quiz:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete quiz. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Update state
       setQuizzes(prev => prev.filter(quiz => quiz.id !== quizId));
       
@@ -64,27 +129,17 @@ export default function QuizHistory() {
         title: "Quiz Deleted",
         description: "The quiz has been removed successfully.",
       });
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete quiz. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
-  const copyPin = (pin: string) => {
-    navigator.clipboard.writeText(pin);
-    toast({
-      title: "PIN Copied!",
-      description: "Game PIN has been copied to clipboard.",
-    });
-  };
-
-  const shareQuiz = (pin: string) => {
-    const joinUrl = `${window.location.origin}/join/${pin}`;
-    navigator.clipboard.writeText(joinUrl);
-    toast({
-      title: "Join URL Copied!",
-      description: "Join URL has been copied to clipboard.",
-    });
-  };
-
-  const startGame = (quizId: string) => {
+  const startGame = async (quizId: string) => {
     navigate(`/host/${quizId}`);
   };
 
@@ -97,6 +152,32 @@ export default function QuizHistory() {
       minute: '2-digit'
     });
   };
+
+  const downloadReport = (report: QuizReport) => {
+    const link = document.createElement('a');
+    link.href = report.file_url;
+    link.download = `Quiz_Report_${report.game_pin}.pdf`;
+    link.target = '_blank';
+    link.click();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+          <CardContent className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <h2 className="text-2xl font-bold mb-2">Loading Quiz History...</h2>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -151,14 +232,68 @@ export default function QuizHistory() {
                         {quiz.description || 'No description'}
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteQuiz(quiz.id, quiz.pin)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1 ml-2">
+                      {/* PDF Reports Button */}
+                      {quiz.reports.length > 0 && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              title={`${quiz.reports.length} PDF reports available`}
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="ml-1 text-xs">{quiz.reports.length}</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-4" align="end">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 pb-2 border-b">
+                                <FileText className="h-4 w-4" style={{ color: '#0087B8' }} />
+                                <span className="font-semibold">PDF Reports ({quiz.reports.length})</span>
+                              </div>
+                              <div className="max-h-48 overflow-y-auto space-y-2">
+                                {quiz.reports.map((report) => (
+                                  <div 
+                                    key={report.id} 
+                                    className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="text-sm font-medium">
+                                        PIN: {report.game_pin}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {formatDate(report.created_at)}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => downloadReport(report)}
+                                      className="ml-2 h-8 w-8 p-0"
+                                      title="Download PDF"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                      
+                      {/* Delete Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteQuiz(quiz.id, quiz.title)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 
@@ -168,15 +303,17 @@ export default function QuizHistory() {
                     <Badge variant="secondary">
                       {quiz.questions.length} Questions
                     </Badge>
-                    <Badge variant="outline">
-                      PIN: {quiz.pin}
-                    </Badge>
+                    {quiz.reports.length > 0 && (
+                      <Badge variant="outline" style={{ borderColor: '#0087B8', color: '#0087B8' }}>
+                        {quiz.reports.length} Reports
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Date */}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    {formatDate(quiz.createdAt)}
+                    {formatDate(quiz.created_at)}
                   </div>
 
                   {/* Actions */}
@@ -188,20 +325,6 @@ export default function QuizHistory() {
                     >
                       <Play className="h-4 w-4 mr-1" />
                       Host
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyPin(quiz.pin)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => shareQuiz(quiz.pin)}
-                    >
-                      <Share2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>

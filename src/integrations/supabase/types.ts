@@ -191,6 +191,41 @@ export type Database = {
           },
         ]
       }
+      quiz_reports: {
+        Row: {
+          created_at: string | null
+          file_url: string
+          game_pin: string
+          id: string
+          quiz_id: string
+          report_title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_url: string
+          game_pin: string
+          id?: string
+          quiz_id: string
+          report_title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string
+          game_pin?: string
+          id?: string
+          quiz_id?: string
+          report_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_reports_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quizzes: {
         Row: {
           created_at: string | null

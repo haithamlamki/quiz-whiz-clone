@@ -235,7 +235,7 @@ export default function FinalResults() {
     };
     logoImg.src = '/lovable-uploads/babf912f-a1b1-4a0f-a5a1-f08ff17d8a6d.png';
 
-    const completePDFGeneration = () => {
+    const completePDFGeneration = async () => {
       // Add subtitle text next to logo
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
@@ -434,9 +434,64 @@ export default function FinalResults() {
         });
       }
 
-      // 10. Save and download PDF
-      const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}_${dateStr.replace(/\//g, '-')}.pdf`;
-      doc.save(fileName);
+      // 10. Save PDF to storage and create database record
+      const fileName = `Quiz_Report_${gameData.quiz_title?.replace(/[^a-z0-9]/gi, '_') || 'Quiz'}_${pin}_${Date.now()}.pdf`;
+      const pdfBlob = doc.output('blob');
+      
+      try {
+        // Get quiz_id from current game
+        const { data: currentGame, error: gameError } = await supabase
+          .from('games')
+          .select('quiz_id')
+          .eq('game_pin', pin)
+          .single();
+
+        if (!gameError && currentGame) {
+          // Upload to Supabase storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('quiz-reports')
+            .upload(fileName, pdfBlob, {
+              contentType: 'application/pdf',
+              upsert: false
+            });
+
+          if (!uploadError) {
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from('quiz-reports')
+              .getPublicUrl(fileName);
+
+            // Save metadata to database
+            const { error: dbError } = await supabase
+              .from('quiz_reports')
+              .insert({
+                quiz_id: currentGame.quiz_id,
+                game_pin: pin,
+                file_url: urlData.publicUrl,
+                report_title: `${gameData.quiz_title} - ${dateStr}`
+              });
+
+            if (dbError) {
+              console.error('Error saving report metadata:', dbError);
+            }
+
+            // Download the file
+            const link = document.createElement('a');
+            link.href = urlData.publicUrl;
+            link.download = fileName;
+            link.click();
+            return;
+          }
+        }
+        
+        // Fallback to local download if upload fails
+        doc.save(fileName);
+        
+      } catch (error) {
+        console.error('Error handling PDF:', error);
+        // Fallback to local download
+        doc.save(fileName);
+      }
     };
   };
 
