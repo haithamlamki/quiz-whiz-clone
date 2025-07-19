@@ -256,38 +256,38 @@ export default function PlayGame() {
     pollGameState();
     pollInterval = setInterval(pollGameState, 1500);
 
-    // Secondary: Real-time subscription (as enhancement)
+    // Enhanced real-time subscription with broadcast support
     const setupRealtime = () => {
-      console.log('🔄 Setting up PlayGame real-time subscription...');
+      console.log('🔄 Setting up PlayGame real-time subscription with broadcast support...');
       
       gameChannel = supabase
-        .channel(`game-play-${game.id}-${Date.now()}`) // Unique channel
+        .channel(`game:${pin}`) // Match the channel used by host
         .on(
           'postgres_changes',
           {
             event: 'UPDATE',
             schema: 'public',
             table: 'games',
-            filter: `id=eq.${game.id}`
+            filter: `game_pin=eq.${pin}`
           },
           (payload) => {
-            const updatedGame = payload.new as Game;
-            console.log('📡 PlayGame real-time update:', updatedGame);
+            const updatedGame = payload.new as any;
+            console.log('📡 PlayGame DB update:', updatedGame);
             setGame(updatedGame);
             
             // Handle game state changes via real-time
             if (updatedGame.status === 'playing' && gameState === 'waiting') {
-              console.log('🎮 REALTIME: waiting → playing');
+              console.log('🎮 REALTIME DB: waiting → playing');
               setGameState('question');
               setQuestionStartTime(Date.now());
             } else if (updatedGame.status === 'finished') {
-              console.log('🏁 REALTIME: Game finished');
+              console.log('🏁 REALTIME DB: Game finished');
               navigate(`/final-results/${pin}`);
             }
             
             // Handle question changes via real-time
             if (updatedGame.current_question_index !== currentQuestionIndex && updatedGame.current_question_index >= 0) {
-              console.log('📝 REALTIME: Question change to:', updatedGame.current_question_index);
+              console.log('📝 REALTIME DB: Question change to:', updatedGame.current_question_index);
               setCurrentQuestionIndex(updatedGame.current_question_index);
               setSelectedAnswer(null);
               setShowResult(false);
@@ -297,6 +297,30 @@ export default function PlayGame() {
             }
           }
         )
+        .on('broadcast', { event: 'game_started' }, (payload) => {
+          console.log('📡 [GUEST] Received game_started broadcast:', payload);
+          if (gameState === 'waiting') {
+            setGameState('question');
+            setQuestionStartTime(Date.now());
+          }
+        })
+        .on('broadcast', { event: 'question' }, (payload) => {
+          console.log('📡 [GUEST] Received question broadcast:', payload);
+          const questionIndex = payload.payload?.index;
+          if (questionIndex !== undefined && questionIndex !== currentQuestionIndex) {
+            console.log('📝 BROADCAST: Question change to:', questionIndex);
+            setCurrentQuestionIndex(questionIndex);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setGameState('question');
+            setQuestionStartTime(Date.now());
+            setSoundTrigger(null);
+          }
+        })
+        .on('broadcast', { event: 'game_finished' }, (payload) => {
+          console.log('📡 [GUEST] Received game_finished broadcast:', payload);
+          navigate(`/final-results/${pin}`);
+        })
         .subscribe((status) => {
           console.log('📡 PlayGame subscription status:', status);
         });

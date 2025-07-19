@@ -299,19 +299,28 @@ export default function HostDashboard() {
       }
 
       // Fire realtime broadcast to all players
-      console.log('[HOST] Broadcasting game_started event to channel game:' + pin);
+      console.log('[HOST] Broadcasting game_started and question events to channel game:' + pin);
       const channel = supabase.channel(`game:${pin}`);
+      
+      // Send game started event
       await channel.send({
         type: 'broadcast',
         event: 'game_started',
         payload: { status: 'playing', gamePin: pin }
+      });
+      
+      // Send first question event
+      await channel.send({
+        type: 'broadcast',
+        event: 'question',
+        payload: { index: 0, gamePin: pin }
       });
 
       setGameState('question');
       setCurrentQuestionIndex(0);
       setTimeLeft(currentQuestion.timeLimit || 20);
       
-      console.log('[HOST] Game started successfully');
+      console.log('[HOST] Game started successfully - broadcasted game_started and question 0');
     } catch (error) {
       console.error('[HOST] Error starting game:', error);
     }
@@ -323,6 +332,8 @@ export default function HostDashboard() {
     
     if (nextIndex < totalQuestions) {
       try {
+        console.log('[HOST] Moving to question', nextIndex);
+        
         // Update game in database
         const { data: game } = await supabase
           .from('games')
@@ -331,13 +342,27 @@ export default function HostDashboard() {
           .single();
 
         if (game) {
-          await supabase
+          const { error: updateError } = await supabase
             .from('games')
             .update({
               current_question_index: nextIndex
             })
             .eq('id', game.id);
+            
+          if (updateError) {
+            console.error('[HOST] Error updating question index:', updateError);
+            return;
+          }
         }
+
+        // Broadcast question change to all players
+        console.log('[HOST] Broadcasting question', nextIndex, 'to channel game:' + pin);
+        const channel = supabase.channel(`game:${pin}`);
+        await channel.send({
+          type: 'broadcast',
+          event: 'question',
+          payload: { index: nextIndex, gamePin: pin }
+        });
 
         setCurrentQuestionIndex(nextIndex);
         setGameState('question');
@@ -345,12 +370,16 @@ export default function HostDashboard() {
         setTimeLeft(nextQ.timeLimit || 20);
         // Reset answered status
         setPlayers(prev => prev.map(p => ({ ...p, answered: false })));
+        
+        console.log('[HOST] Successfully moved to question', nextIndex);
       } catch (error) {
-        console.error('Error moving to next question:', error);
+        console.error('[HOST] Error moving to next question:', error);
       }
     } else {
       // End the game
       try {
+        console.log('[HOST] Game finished, updating status');
+        
         const { data: game } = await supabase
           .from('games')
           .select('id')
@@ -365,9 +394,17 @@ export default function HostDashboard() {
               ended_at: new Date().toISOString()
             })
             .eq('id', game.id);
+            
+          // Broadcast game finished
+          const channel = supabase.channel(`game:${pin}`);
+          await channel.send({
+            type: 'broadcast',
+            event: 'game_finished',
+            payload: { gamePin: pin }
+          });
         }
       } catch (error) {
-        console.error('Error ending game:', error);
+        console.error('[HOST] Error ending game:', error);
       }
       
       navigate(`/final-results/${quiz?.pin || pin}`);
