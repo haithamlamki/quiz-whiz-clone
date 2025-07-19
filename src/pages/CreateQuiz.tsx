@@ -14,10 +14,12 @@ import { useNavigate } from 'react-router-dom';
 import { Question } from '@/types/quiz';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CreateQuiz() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDescription, setQuizDescription] = useState('');
   const [backgroundTheme, setBackgroundTheme] = useState('bg-sky-600');
@@ -107,22 +109,19 @@ export default function CreateQuiz() {
       // Generate proper UUID for the quiz
       const quizId = crypto.randomUUID();
       
-      // Save quiz to Supabase
-      console.log('Attempting to save quiz with data:', {
+      // Save quiz to Supabase with proper user ownership
+      const quizData = {
         id: quizId,
         title: quizTitle.trim(),
         description: quizDescription.trim(),
-        user_id: null // Allow anonymous quiz creation
-      });
+        user_id: user?.id || null // Set user_id if authenticated, null for anonymous
+      };
+      
+      console.log('Attempting to save quiz with data:', quizData);
       
       const { error: quizError } = await supabase
         .from('quizzes')
-        .insert({
-          id: quizId,
-          title: quizTitle.trim(),
-          description: quizDescription.trim(),
-          user_id: null // Allow anonymous quiz creation
-        });
+        .insert(quizData);
 
       if (quizError) {
         console.error('Quiz creation error:', quizError);
@@ -159,7 +158,7 @@ export default function CreateQuiz() {
       }
 
       // Store additional metadata in localStorage for compatibility
-      const quizData = {
+      const localQuizData = {
         id: quizId,
         title: quizTitle.trim(),
         description: quizDescription.trim(),
@@ -169,7 +168,7 @@ export default function CreateQuiz() {
         createdAt: new Date().toISOString()
       };
       
-      localStorage.setItem(`quiz_${quizId}`, JSON.stringify(quizData));
+      localStorage.setItem(`quiz_${quizId}`, JSON.stringify(localQuizData));
       
       toast({
         title: "Quiz Saved Successfully!",

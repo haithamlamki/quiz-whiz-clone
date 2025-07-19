@@ -38,6 +38,7 @@ export default function QuizHistory() {
   const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<QuizWithReports[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showingAll, setShowingAll] = useState(false);
 
   useEffect(() => {
     loadQuizzes();
@@ -46,7 +47,7 @@ export default function QuizHistory() {
   const loadQuizzes = async () => {
     try {
       // Load user's quizzes with their reports
-      const { data: quizzesData, error: quizzesError } = await supabase
+      let query = supabase
         .from('quizzes')
         .select(`
           id,
@@ -55,8 +56,17 @@ export default function QuizHistory() {
           created_at,
           user_id,
           questions (id)
-        `)
-        .eq('user_id', user?.id || null)
+        `);
+      
+      // Show user's quizzes first, or all anonymous quizzes if not authenticated or showing all
+      if (user?.id && !showingAll) {
+        query = query.eq('user_id', user.id);
+      } else if (!user?.id || showingAll) {
+        // For anonymous users or when showing all, show anonymous quizzes
+        query = query.is('user_id', null);
+      }
+      
+      const { data: quizzesData, error: quizzesError } = await query
         .order('created_at', { ascending: false });
 
       if (quizzesError) {
@@ -98,6 +108,38 @@ export default function QuizHistory() {
     } catch (error) {
       console.error('Error loading quiz history:', error);
       setLoading(false);
+    }
+  };
+
+  const claimAnonymousQuizzes = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Update all anonymous quizzes to be owned by current user
+      const { error } = await supabase
+        .from('quizzes')
+        .update({ user_id: user.id })
+        .is('user_id', null);
+      
+      if (error) {
+        console.error('Error claiming quizzes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to claim anonymous quizzes.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Quizzes Claimed",
+        description: "All anonymous quizzes have been linked to your account.",
+      });
+      
+      // Reload quizzes
+      loadQuizzes();
+    } catch (error) {
+      console.error('Error claiming quizzes:', error);
     }
   };
 
@@ -205,8 +247,60 @@ export default function QuizHistory() {
           </div>
         </div>
 
-        {quizzes.length === 0 ? (
-          // Empty state
+        {(quizzes.length === 0 && user?.id && !showingAll) ? (
+          // Empty state for authenticated users - show option to view anonymous quizzes
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game max-w-2xl mx-auto">
+            <CardContent className="p-12 text-center">
+              <div className="text-6xl mb-4">📚</div>
+              <h2 className="text-2xl font-bold mb-2">No Personal Quizzes Yet</h2>
+              <p className="text-muted-foreground mb-6">
+                You haven't created any personal quizzes. Start by creating your first quiz, or check for anonymous quizzes you may have created before logging in.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={() => navigate('/create')} size="lg">
+                  Create Your First Quiz
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowingAll(true);
+                    loadQuizzes();
+                  }} 
+                  size="lg"
+                >
+                  View Anonymous Quizzes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (quizzes.length === 0 && showingAll) ? (
+          // Empty state when showing anonymous quizzes
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game max-w-2xl mx-auto">
+            <CardContent className="p-12 text-center">
+              <div className="text-6xl mb-4">📚</div>
+              <h2 className="text-2xl font-bold mb-2">No Anonymous Quizzes Found</h2>
+              <p className="text-muted-foreground mb-6">
+                No anonymous quizzes available. Create a new quiz to get started!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={() => navigate('/create')} size="lg">
+                  Create New Quiz
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowingAll(false);
+                    loadQuizzes();
+                  }} 
+                  size="lg"
+                >
+                  Back to My Quizzes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (quizzes.length === 0) ? (
+          // Empty state for anonymous users
           <Card className="bg-white/95 backdrop-blur-sm shadow-game max-w-2xl mx-auto">
             <CardContent className="p-12 text-center">
               <div className="text-6xl mb-4">📚</div>
@@ -220,8 +314,53 @@ export default function QuizHistory() {
             </CardContent>
           </Card>
         ) : (
-          // Quiz grid
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          // Quiz grid with header options
+          <div className="space-y-6">
+            {/* Header with view toggles */}
+            {user?.id && (
+              <div className="flex justify-between items-center bg-white/95 backdrop-blur-sm rounded-lg p-4 shadow-game">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-semibold">
+                    {showingAll ? "Anonymous Quizzes" : "My Quizzes"} ({quizzes.length})
+                  </h2>
+                  {showingAll && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={claimAnonymousQuizzes}
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    >
+                      Claim All Anonymous Quizzes
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={!showingAll ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setShowingAll(false);
+                      loadQuizzes();
+                    }}
+                  >
+                    My Quizzes
+                  </Button>
+                  <Button
+                    variant={showingAll ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setShowingAll(true);
+                      loadQuizzes();
+                    }}
+                  >
+                    Anonymous
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Quiz grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quizzes.map((quiz) => (
               <Card key={quiz.id} className="bg-white/95 backdrop-blur-sm shadow-game hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -330,6 +469,7 @@ export default function QuizHistory() {
                 </CardContent>
               </Card>
             ))}
+            </div>
           </div>
         )}
 
