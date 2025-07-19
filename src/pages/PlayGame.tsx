@@ -277,56 +277,21 @@ export default function PlayGame() {
       currentQuestion: currentQuestion.question_text
     });
     
-    // Use dynamic points from question or default to 1000
-    const basePoints = currentQuestion.points || 1000;
-    let questionScore = 0;
-    
-    // Calculate score with speed bonus and streak multiplier only for correct answers
+    // Update UI immediately for feedback
     if (isCorrect) {
-      const responseTime = Date.now() - questionStartTime;
-      const speedBonus = Math.max(0, currentQuestion.time_limit * 1000 - responseTime) / 100;
-      const streakMultiplier = 1 + (streak * 0.1);
-      questionScore = Math.floor((basePoints + speedBonus) * streakMultiplier);
-      
-      console.log('Score calculation:', {
-        basePoints,
-        speedBonus,
-        streakMultiplier,
-        questionScore,
-        responseTime,
-        timeLimit: currentQuestion.time_limit
-      });
-      
-      const newScore = score + questionScore;
-      setScore(newScore);
       setStreak(prev => prev + 1);
       setTotalCorrect(prev => prev + 1);
       setSoundTrigger('correct');
-      
-      // Update player score in database using the increment function
-      if (player) {
-        try {
-          const { error } = await supabase.rpc('increment_player_score', {
-            player_id_in: player.id,
-            score_to_add: questionScore
-          });
-          
-          if (error) {
-            console.error('Failed to update player score:', error);
-          }
-        } catch (error) {
-          console.error('Error updating player score:', error);
-        }
-      }
     } else {
       setStreak(0);
       setSoundTrigger('incorrect');
     }
 
-    // Record the answer with accurate timing
+    // Record the answer without awarding points yet
+    // Points will be calculated after all answers are collected
     if (player && currentQuestion) {
       const responseTime = Date.now() - questionStartTime;
-      console.log(`Answer recorded - Response time: ${responseTime}ms, Score awarded: ${questionScore}`);
+      console.log(`Answer recorded - Response time: ${responseTime}ms, Correct: ${isCorrect}`);
       
       await supabase
         .from('answers')
@@ -334,13 +299,85 @@ export default function PlayGame() {
           player_id: player.id,
           question_id: currentQuestion.id,
           is_correct: isCorrect,
-          score_awarded: questionScore, // Use the calculated score, not base points
+          score_awarded: 0, // Will be updated when scores are calculated
           time_taken_ms: responseTime
         });
+
+      // Schedule scoring calculation after a delay to allow other players to answer
+      // In a real-time game, this would be triggered by the host or timer
+      setTimeout(() => {
+        calculateAndAwardScores(currentQuestion.id);
+      }, 2000); // 2 second delay to simulate waiting for other players
+    }
+  };
+
+  // Function to calculate and award points based on relative response times
+  const calculateAndAwardScores = async (questionId: string) => {
+    if (!game || !player) return;
+
+    console.log('Calculating scores for question:', questionId);
+
+    // Get all answers for this question
+    const { data: allAnswers, error } = await supabase
+      .from('answers')
+      .select('*')
+      .eq('question_id', questionId);
+
+    if (error || !allAnswers) {
+      console.error('Failed to fetch answers for scoring:', error);
+      return;
     }
 
-    // Wait for host to control question flow - no auto advance
-    // The game will advance when the host clicks "Next Question" and updates the database
+    // Filter correct answers and find fastest time
+    const correctAnswers = allAnswers.filter(answer => answer.is_correct);
+    
+    if (correctAnswers.length === 0) {
+      console.log('No correct answers to score');
+      return;
+    }
+
+    const fastestTime = Math.min(...correctAnswers.map(answer => answer.time_taken_ms));
+    console.log(`Fastest correct answer: ${fastestTime}ms from ${correctAnswers.length} correct answers`);
+
+    // Calculate and award scores
+    for (const answer of correctAnswers) {
+      const ratio = fastestTime / answer.time_taken_ms;
+      const baseScore = 1000;
+      const calculatedScore = Math.round(baseScore * ratio);
+      const finalScore = Math.min(calculatedScore, 1000); // Cap at 1000
+
+      console.log(`Player ${answer.player_id}: ${answer.time_taken_ms}ms, ratio: ${ratio.toFixed(3)}, score: ${finalScore}`);
+
+      // Update player score in database
+      try {
+        const { error: scoreError } = await supabase.rpc('increment_player_score', {
+          player_id_in: answer.player_id,
+          score_to_add: finalScore
+        });
+
+        if (scoreError) {
+          console.error('Failed to update player score:', scoreError);
+          continue;
+        }
+
+        // Update the answer record with the awarded score
+        await supabase
+          .from('answers')
+          .update({ score_awarded: finalScore })
+          .eq('id', answer.id);
+
+        // Update local score if this is the current player
+        if (answer.player_id === player.id) {
+          setScore(prev => prev + finalScore);
+          console.log(`Updated local score: +${finalScore} points`);
+        }
+
+      } catch (error) {
+        console.error('Error updating score:', error);
+      }
+    }
+
+    console.log('Score calculation completed');
   };
 
   const answerColors: ('red' | 'blue' | 'yellow' | 'green')[] = ['red', 'blue', 'yellow', 'green'];
@@ -560,7 +597,7 @@ export default function PlayGame() {
                         <div className="text-5xl mb-3 animate-bounce">🎉</div>
                         <h3 className="text-3xl font-bold mb-3 text-[#1BC47D]">Correct!</h3>
                         <div className="space-y-2">
-                          <p className="text-xl font-semibold text-gray-700">+1000 points</p>
+                          <p className="text-lg text-gray-700">Calculating points based on speed...</p>
                           {streak > 1 && (
                             <p className="text-orange-600 font-bold">
                               🔥 {streak} Answer Streak! +{Math.floor(streak * 10)}% bonus
