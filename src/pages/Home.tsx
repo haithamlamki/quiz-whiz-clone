@@ -2,31 +2,10 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { GameCard } from '@/components/GameCard';
 import { NavigationBar } from '@/components/NavigationBar';
-import { Play, Plus, Users, Zap, Search } from 'lucide-react';
+import { Play, Plus, Users, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Sample quiz data
-const sampleQuizzes = [{
-  id: '1',
-  title: 'General Knowledge',
-  description: 'Test your knowledge across various topics',
-  playerCount: 156,
-  duration: '8 min'
-}, {
-  id: '2',
-  title: 'Science Quiz',
-  description: 'Explore the wonders of science',
-  playerCount: 89,
-  duration: '10 min'
-}, {
-  id: '3',
-  title: 'History Challenge',
-  description: 'Journey through time and test your historical knowledge',
-  playerCount: 234,
-  duration: '12 min'
-}];
 export default function Home() {
   const navigate = useNavigate();
   const [gamePin, setGamePin] = React.useState('');
@@ -37,9 +16,6 @@ export default function Home() {
   };
   const handleCreateQuiz = () => {
     navigate('/create');
-  };
-  const handlePlayQuiz = (quizId: string) => {
-    navigate(`/host/${quizId}`);
   };
   return (
     <>
@@ -109,25 +85,6 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* Featured Quizzes */}
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-display font-bold tracking-tight text-white text-3d mb-4">
-                Featured Quizzes
-              </h2>
-              <Button 
-                variant="game" 
-                size="hero" 
-                onClick={() => navigate('/discover')}
-              >
-                <Search className="h-5 w-5 mr-2" />
-                Discover More Quizzes
-              </Button>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sampleQuizzes.map(quiz => <GameCard key={quiz.id} title={quiz.title} description={quiz.description} playerCount={quiz.playerCount} duration={quiz.duration} onPlay={() => handlePlayQuiz(quiz.id)} />)}
-            </div>
-          </div>
         </div>
       </div>
     </>
