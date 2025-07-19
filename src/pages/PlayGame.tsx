@@ -404,6 +404,16 @@ export default function PlayGame() {
     }
   }, [hasQuestions, pendingQuestionIndex]);
 
+  // ⏰ Countdown timer effect
+  useEffect(() => {
+    if (gameState === 'countdown' && countdownSeconds > 0) {
+      const timer = setTimeout(() => {
+        setCountdownSeconds(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, countdownSeconds]);
+
   // Debug logging for question state
   console.log('[PlayGame] Debug:', {
     gameState,
