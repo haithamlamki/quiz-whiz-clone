@@ -447,15 +447,16 @@ export default function FinalResults() {
           .single();
 
         if (!gameError && currentGame) {
-          // Upload to Supabase storage
+          // Upload to Supabase storage with proper content type
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('quiz-reports')
             .upload(fileName, pdfBlob, {
               contentType: 'application/pdf',
+              cacheControl: '3600',
               upsert: false
             });
 
-          if (!uploadError) {
+          if (!uploadError && uploadData) {
             // Get public URL
             const { data: urlData } = supabase.storage
               .from('quiz-reports')
@@ -473,18 +474,46 @@ export default function FinalResults() {
 
             if (dbError) {
               console.error('Error saving report metadata:', dbError);
+            } else {
+              console.log('Report metadata saved successfully');
             }
 
-            // Download the file
-            const link = document.createElement('a');
-            link.href = urlData.publicUrl;
-            link.download = fileName;
-            link.click();
-            return;
+            // Use proper download method to avoid Chrome blocking
+            try {
+              const response = await fetch(urlData.publicUrl);
+              if (response.ok) {
+                const blob = await response.blob();
+                
+                // Verify it's actually a PDF
+                if (blob.type === 'application/pdf' || blob.type === 'application/octet-stream') {
+                  const downloadUrl = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.download = fileName;
+                  link.style.display = 'none';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(downloadUrl);
+                  return;
+                } else {
+                  console.warn('Invalid content type received:', blob.type);
+                }
+              } else {
+                console.warn('Failed to fetch PDF:', response.status);
+              }
+            } catch (fetchError) {
+              console.error('Error downloading from storage:', fetchError);
+            }
+          } else {
+            console.error('Upload failed:', uploadError);
           }
+        } else {
+          console.error('Game not found:', gameError);
         }
         
-        // Fallback to local download if upload fails
+        // Fallback to local download if upload/storage fails
+        console.log('Using fallback local download');
         doc.save(fileName);
         
       } catch (error) {
