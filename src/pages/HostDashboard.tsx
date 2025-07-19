@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +56,10 @@ export default function HostDashboard() {
   const [quiz, setQuiz] = useState<any>(null);
   const [pin, setPin] = useState('123456');
   const [isPaused, setIsPaused] = useState(false);
+  
+  // 🚦 Ready state tracking for perfect synchronization
+  const readyPlayers = useRef<Set<string>>(new Set());
+  const [waitingForReady, setWaitingForReady] = useState(false);
 
   // Load quiz data and set background
   useEffect(() => {
@@ -264,16 +268,56 @@ export default function HostDashboard() {
     }
   }, [gameState, timeLeft, isPaused]);
 
+  // 🚦 Function to start question timer only when all players are ready
+  const startQuestionTimer = async (gameId: string) => {
+    try {
+      console.log('[HOST] 🚦 All players ready - starting question timer');
+      
+      // Update status to 'playing'
+      await supabase
+        .from('games')
+        .update({ status: 'playing' })
+        .eq('id', gameId);
+
+      // Send game started and first question
+      const channel = supabase.channel(`game:${pin}`);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_started',
+        payload: { status: 'playing', gamePin: pin }
+      });
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'question',
+        payload: { index: 0, gamePin: pin }
+      });
+
+      setGameState('question');
+      setCurrentQuestionIndex(0);
+      setTimeLeft(currentQuestion.timeLimit || 20);
+      setWaitingForReady(false);
+      
+      console.log('[HOST] 🚦 Question timer started - all players synchronized');
+    } catch (error) {
+      console.error('[HOST] Error starting question timer:', error);
+    }
+  };
+
   const startGame = async () => {
     try {
       console.log('[HOST] Starting game for PIN:', String(pin).trim());
+      
+      // Reset ready tracking
+      readyPlayers.current.clear();
+      setWaitingForReady(true);
       
       // Update game status to 'starting' first - this triggers countdown
       const { data: game, error: gameSelectError } = await supabase
         .from('games')
         .select('id')
         .eq('game_pin', String(pin).trim())
-        .single();
+        .maybeSingle();
 
       if (gameSelectError || !game) {
         console.error('[HOST] Error finding game:', gameSelectError);
@@ -299,9 +343,32 @@ export default function HostDashboard() {
         return;
       }
 
+      // Set up ready signal listener
+      const channel = supabase.channel(`game:${pin}`);
+      
+      channel
+        .on('broadcast', { event: 'ready_for_q1' }, (payload) => {
+          const playerId = payload.payload?.playerId;
+          const playerName = payload.payload?.playerName;
+          
+          console.log('🚦 [HOST] Received ready signal from:', playerName, playerId);
+          
+          if (playerId) {
+            readyPlayers.current.add(playerId);
+            console.log(`🚦 [HOST] Ready count: ${readyPlayers.current.size}/${players.length}`);
+            
+            // Check if all connected players are ready
+            if (readyPlayers.current.size >= players.length && players.length > 0) {
+              console.log('🚦 [HOST] All players ready! Starting question timer...');
+              startQuestionTimer(game.id);
+              supabase.removeChannel(channel);
+            }
+          }
+        })
+        .subscribe();
+
       // Broadcast countdown event
       console.log('[HOST] Broadcasting countdown to channel game:' + pin);
-      const channel = supabase.channel(`game:${pin}`);
       
       await channel.send({
         type: 'broadcast',
@@ -311,39 +378,16 @@ export default function HostDashboard() {
 
       setGameState('countdown');
       
-      // After 3 seconds, switch to playing and start Q1
-      setTimeout(async () => {
-        try {
-          // Update status to 'playing'
-          await supabase
-            .from('games')
-            .update({ status: 'playing' })
-            .eq('id', game.id);
-
-          // Send game started and first question
-          await channel.send({
-            type: 'broadcast',
-            event: 'game_started',
-            payload: { status: 'playing', gamePin: pin }
-          });
-          
-          await channel.send({
-            type: 'broadcast',
-            event: 'question',
-            payload: { index: 0, gamePin: pin }
-          });
-
-          setGameState('question');
-          setCurrentQuestionIndex(0);
-          setTimeLeft(currentQuestion.timeLimit || 20);
-          
-          console.log('[HOST] Game started successfully - players now see Q1 with synchronized timer');
-        } catch (error) {
-          console.error('[HOST] Error in delayed game start:', error);
+      // Fallback: if no players respond within 10 seconds, start anyway
+      setTimeout(() => {
+        if (waitingForReady && readyPlayers.current.size === 0) {
+          console.log('🚦 [HOST] Timeout - starting without ready signals');
+          startQuestionTimer(game.id);
+          supabase.removeChannel(channel);
         }
-      }, 3000);
+      }, 10000);
       
-      console.log('[HOST] Countdown initiated - 3 seconds until Q1');
+      console.log('[HOST] 🚦 Countdown initiated - waiting for all players to be ready');
     } catch (error) {
       console.error('[HOST] Error starting game:', error);
     }
@@ -452,13 +496,27 @@ export default function HostDashboard() {
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
       }}>
-        <Card className="bg-white/95 backdrop-blur-sm shadow-xl p-8 text-center">
+        <Card className="bg-white/95 backdrop-blur-sm shadow-xl p-8 text-center max-w-lg">
           <CardContent>
             <div className="text-6xl mb-4">🚀</div>
             <h2 className="text-3xl font-bold mb-4">Get Ready!</h2>
-            <p className="text-xl text-muted-foreground mb-6">Question 1 starting in...</p>
-            <div className="text-8xl font-bold text-primary animate-pulse">3</div>
-            <p className="text-lg text-muted-foreground mt-4">All players will see the question simultaneously!</p>
+            {waitingForReady ? (
+              <>
+                <p className="text-xl text-muted-foreground mb-6">Waiting for all players to load...</p>
+                <div className="text-4xl font-bold text-primary mb-4">
+                  🚦 {readyPlayers.current.size}/{players.length} Ready
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Question will start when all players are ready
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xl text-muted-foreground mb-6">Question 1 starting in...</p>
+                <div className="text-8xl font-bold text-primary animate-pulse">3</div>
+                <p className="text-lg text-muted-foreground mt-4">All players will see the question simultaneously!</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

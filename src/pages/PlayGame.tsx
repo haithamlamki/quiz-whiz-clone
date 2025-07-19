@@ -68,6 +68,9 @@ export default function PlayGame() {
   
   // 🔄 Buffer for pending events when quiz isn't loaded yet
   const [pendingQuestionIndex, setPendingQuestionIndex] = useState<number | null>(null);
+  
+  // 🚦 Ready state tracking for perfect synchronization
+  const [sentReady, setSentReady] = useState(false);
 
   // Reset background when leaving this page
   useEffect(() => {
@@ -193,6 +196,8 @@ export default function PlayGame() {
     };
 
     loadGameData();
+    // Reset ready state for new games
+    setSentReady(false);
   }, [pin, playerName, navigate]);
 
   // Compute derived state outside of useEffect to avoid dependency issues
@@ -333,6 +338,7 @@ export default function PlayGame() {
         )
         .on('broadcast', { event: 'countdown' }, (payload) => {
           console.log('📡 [GUEST] Received countdown broadcast:', payload);
+          setSentReady(false); // Reset ready state for new countdown
           setGameState('countdown');
           setCountdownSeconds(payload.payload?.seconds || 3);
         })
@@ -413,6 +419,20 @@ export default function PlayGame() {
       return () => clearTimeout(timer);
     }
   }, [gameState, countdownSeconds]);
+
+  // 🚦 Emit ready signal when player is loaded and in countdown
+  useEffect(() => {
+    if (hasQuestions && gameState === 'countdown' && !sentReady && player) {
+      console.log('🚦 Player ready - emitting ready_for_q1 signal');
+      const channel = supabase.channel(`game:${pin}`);
+      channel.send({
+        type: 'broadcast',
+        event: 'ready_for_q1',
+        payload: { playerId: player.id, playerName: player.name }
+      });
+      setSentReady(true);
+    }
+  }, [hasQuestions, gameState, sentReady, player, pin]);
 
   // Debug logging for question state
   console.log('[PlayGame] Debug:', {
