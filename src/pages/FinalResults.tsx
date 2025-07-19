@@ -85,7 +85,13 @@ export default function FinalResults() {
 
         // Check if current user is the host
         const { data: { user } } = await supabase.auth.getUser();
-        setIsHost(user?.id === gameInfo.host_id);
+        const isUserHost = user?.id === gameInfo.host_id;
+        console.log('[FinalResults] isHost check:', { 
+          userId: user?.id, 
+          hostId: gameInfo.host_id, 
+          isHost: isUserHost 
+        });
+        setIsHost(isUserHost);
 
         // Get all players with their detailed answers
         const { data: playersData, error: playersError } = await supabase
