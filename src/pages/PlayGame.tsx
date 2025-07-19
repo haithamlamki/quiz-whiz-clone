@@ -236,10 +236,21 @@ export default function PlayGame() {
             return; // Stop polling
           }
           
-          // Handle question progression
+          // Handle question progression - always process valid question index changes
           if (questionChanged && gameData.current_question_index >= 0) {
             console.log(`📝 QUESTION CHANGE: ${currentQuestionIndex} → ${gameData.current_question_index}`);
             setCurrentQuestionIndex(gameData.current_question_index);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setGameState('question');
+            setQuestionStartTime(Date.now());
+            setSoundTrigger(null);
+          }
+          
+          // Special case: if game just started (status changed to playing) and question index is 0
+          if (gameData.status === 'playing' && gameData.current_question_index === 0 && gameState === 'waiting') {
+            console.log('🎮 SPECIAL CASE: Game started with Q0');
+            setCurrentQuestionIndex(0);
             setSelectedAnswer(null);
             setShowResult(false);
             setGameState('question');
@@ -289,6 +300,17 @@ export default function PlayGame() {
             if (updatedGame.current_question_index !== currentQuestionIndex && updatedGame.current_question_index >= 0) {
               console.log('📝 REALTIME DB: Question change to:', updatedGame.current_question_index);
               setCurrentQuestionIndex(updatedGame.current_question_index);
+              setSelectedAnswer(null);
+              setShowResult(false);
+              setGameState('question');
+              setQuestionStartTime(Date.now());
+              setSoundTrigger(null);
+            }
+            
+            // Special case: if game just started (status changed to playing) and question index is 0
+            if (updatedGame.status === 'playing' && updatedGame.current_question_index === 0 && gameState === 'waiting') {
+              console.log('🎮 REALTIME SPECIAL CASE: Game started with Q0');
+              setCurrentQuestionIndex(0);
               setSelectedAnswer(null);
               setShowResult(false);
               setGameState('question');
