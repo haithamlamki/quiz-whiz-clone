@@ -54,7 +54,7 @@ export default function PlayGame() {
   const [error, setError] = useState<string | null>(null);
   
   // Question state
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(-1);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
@@ -164,7 +164,7 @@ export default function PlayGame() {
 
         setPlayer(playerData);
         setScore(playerData.score || 0);
-        setCurrentQuestionIndex(gameData.current_question_index >= 0 ? gameData.current_question_index : 0);
+        setCurrentQuestionIndex(gameData.current_question_index);
         
         setLoading(false);
         
@@ -359,7 +359,7 @@ export default function PlayGame() {
     };
   }, [game?.id, pin, gameState, currentQuestionIndex, navigate]);
 
-  const currentQuestion = quiz?.questions[currentQuestionIndex];
+  const currentQuestion = quiz?.questions[currentQuestionIndex] || null;
   const isLastQuestion = quiz ? currentQuestionIndex === quiz.questions.length - 1 : false;
 
   useEffect(() => {
@@ -575,8 +575,8 @@ export default function PlayGame() {
     );
   }
 
-  // Safety check - if no current question, show error state
-  if (!currentQuestion) {
+  // Safety check - if no current question AND we're supposed to be showing a question, show error
+  if (!currentQuestion && gameState === 'question' && currentQuestionIndex >= 0) {
     return (
       <div className="min-h-screen" style={{
         backgroundImage: 'var(--gradient-classroom)',
@@ -590,6 +590,28 @@ export default function PlayGame() {
               <div className="text-4xl mb-4">❌</div>
               <h2 className="text-2xl font-bold mb-2">Game Error</h2>
               <p className="text-muted-foreground mb-4">Question not found</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // If gameState is 'question' but we don't have a valid question yet, show loading
+  if (gameState === 'question' && !currentQuestion) {
+    return (
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Loading Question...</h2>
+              <p className="text-muted-foreground">Please wait</p>
             </CardContent>
           </Card>
         </div>
