@@ -289,42 +289,39 @@ export default function FinalResults() {
 
       currentY += 20;
 
-      // Create detailed questions table
+      // Create detailed questions table with all options shown
       const questionTableData: any[] = [];
       questions.forEach((question, index) => {
-        // Add question row
+        // Build options display with correct answer highlighted
+        const optionsDisplay = question.options.map((option, optIndex) => {
+          const answerPrefix = ['A)', 'B)', 'C)', 'D)'][optIndex] || `${optIndex + 1})`;
+          return option.correct 
+            ? `${answerPrefix} ${option.text} ✓` 
+            : `${answerPrefix} ${option.text}`;
+        }).join('\n');
+        
+        // Find correct answer letter
+        const correctIndex = question.options.findIndex(opt => opt.correct);
+        const correctLetter = correctIndex >= 0 ? ['A', 'B', 'C', 'D'][correctIndex] || (correctIndex + 1).toString() : '?';
+        
+        // Add question row with all options
         questionTableData.push([
           (index + 1).toString(),
-          question.question_text,
-          ''
+          `${question.question_text}\n\n${optionsDisplay}`,
+          correctLetter
         ]);
-        
-        // Add answer options
-        question.options.forEach((option, optIndex) => {
-          const answerPrefix = ['A)', 'B)', 'C)', 'D)'][optIndex] || `${optIndex + 1})`;
-          const answerText = option.correct ? `✅ ${answerPrefix} ${option.text}` : `${answerPrefix} ${option.text}`;
-          questionTableData.push([
-            '',
-            answerText,
-            option.correct ? '✅ CORRECT' : ''
-          ]);
-        });
-        
-        // Add empty row for spacing
-        if (index < questions.length - 1) {
-          questionTableData.push(['', '', '']);
-        }
       });
 
       (doc as any).autoTable({
         startY: currentY,
-        head: [['#', 'Question / Answers', 'Status']],
+        head: [['#', 'Question / Options', 'Correct']],
         body: questionTableData,
         styles: { 
           fontSize: 9, 
-          cellPadding: 3,
+          cellPadding: 4,
           lineColor: [200, 200, 200],
-          lineWidth: 0.5
+          lineWidth: 0.5,
+          lineHeight: 1.4
         },
         headStyles: { 
           fillColor: [0, 135, 184], 
@@ -333,26 +330,20 @@ export default function FinalResults() {
           fontStyle: 'bold'
         },
         columnStyles: {
-          0: { cellWidth: 30, halign: 'center' },
-          1: { cellWidth: 350 },
-          2: { cellWidth: 80, halign: 'center' },
+          0: { cellWidth: 25, halign: 'center' },
+          1: { cellWidth: 380 },
+          2: { cellWidth: 40, halign: 'center' },
         },
         didParseCell: (data: any) => {
-          // Style correct answers with tick marks
-          if (data.cell.text.includes('✅')) {
-            data.cell.styles.textColor = [39, 174, 96]; // Green
-            data.cell.styles.fontStyle = 'bold';
-          }
-          
-          // Style "✅ CORRECT" status
-          if (data.cell.text.includes('✅ CORRECT')) {
-            data.cell.styles.fillColor = [39, 174, 96];
+          // Style correct answer column with ABRAJ blue-teal
+          if (data.column.index === 2) {
+            data.cell.styles.fillColor = [0, 135, 184];
             data.cell.styles.textColor = [255, 255, 255];
             data.cell.styles.fontStyle = 'bold';
           }
           
-          // Style question rows
-          if (data.column.index === 0 && data.cell.text !== '' && !isNaN(parseInt(data.cell.text))) {
+          // Style question number rows
+          if (data.column.index === 0) {
             data.cell.styles.fillColor = [240, 248, 255];
             data.cell.styles.fontStyle = 'bold';
           }
