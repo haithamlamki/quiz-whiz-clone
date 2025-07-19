@@ -360,6 +360,16 @@ export default function PlayGame() {
   }, [game?.id, pin, gameState, currentQuestionIndex, navigate]);
 
   const currentQuestion = quiz?.questions[currentQuestionIndex] || null;
+  
+  // Debug logging for question state
+  console.log('[PlayGame] Debug:', {
+    gameState,
+    currentQuestionIndex,
+    hasQuiz: !!quiz,
+    questionsLength: quiz?.questions?.length,
+    hasCurrentQuestion: !!currentQuestion,
+    questionId: currentQuestion?.id
+  });
   const isLastQuestion = quiz ? currentQuestionIndex === quiz.questions.length - 1 : false;
 
   useEffect(() => {
