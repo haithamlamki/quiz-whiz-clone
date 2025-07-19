@@ -25,7 +25,12 @@ interface GameData {
 interface QuestionData {
   id: string;
   question_text: string;
-  options: { text: string; correct: boolean }[];
+  options: {
+    type: string;
+    answers: string[];
+    correctAnswer: number;
+    points?: number;
+  };
 }
 
 interface DetailedPlayerResult extends PlayerResult {
@@ -148,11 +153,19 @@ export default function FinalResults() {
         setDetailedResults(processedDetailedResults);
         
         // Type-safe question processing
-        const questionData: QuestionData[] = (gameInfo.quizzes?.questions || []).map(q => ({
-          id: q.id,
-          question_text: q.question_text,
-          options: Array.isArray(q.options) ? q.options as { text: string; correct: boolean }[] : []
-        }));
+        const questionData: QuestionData[] = (gameInfo.quizzes?.questions || []).map(q => {
+          const options = q.options as any;
+          return {
+            id: q.id,
+            question_text: q.question_text,
+            options: {
+              type: options?.type || 'multiple-choice',
+              answers: options?.answers || [],
+              correctAnswer: options?.correctAnswer || 0,
+              points: options?.points || 1000
+            }
+          };
+        });
         
         setQuestions(questionData);
         setGameData({
@@ -293,22 +306,25 @@ export default function FinalResults() {
       const questionTableData: any[] = [];
       questions.forEach((question, index) => {
         // Build options display with correct answer highlighted
-        const optionsDisplay = question.options.map((option, optIndex) => {
+        const answers = question.options.answers || [];
+        const correctAnswerIndex = question.options.correctAnswer || 0;
+        
+        const optionsDisplay = answers.map((answer, optIndex) => {
           const answerPrefix = ['A)', 'B)', 'C)', 'D)'][optIndex] || `${optIndex + 1})`;
-          return option.correct 
-            ? `${answerPrefix} ${option.text} ✓` 
-            : `${answerPrefix} ${option.text}`;
+          return optIndex === correctAnswerIndex
+            ? `${answerPrefix} ${answer} ✓` 
+            : `${answerPrefix} ${answer}`;
         }).join('\n');
         
-        // Find correct answer letter
-        const correctIndex = question.options.findIndex(opt => opt.correct);
-        const correctLetter = correctIndex >= 0 ? ['A', 'B', 'C', 'D'][correctIndex] || (correctIndex + 1).toString() : '?';
+        // Get correct answer letter and text
+        const correctLetter = ['A', 'B', 'C', 'D'][correctAnswerIndex] || (correctAnswerIndex + 1).toString();
+        const correctAnswer = answers[correctAnswerIndex] || 'N/A';
         
         // Add question row with all options
         questionTableData.push([
           (index + 1).toString(),
           `${question.question_text}\n\n${optionsDisplay}`,
-          correctLetter
+          `${correctLetter} - ${correctAnswer}`
         ]);
       });
 
@@ -346,6 +362,13 @@ export default function FinalResults() {
           if (data.column.index === 0) {
             data.cell.styles.fillColor = [240, 248, 255];
             data.cell.styles.fontStyle = 'bold';
+          }
+          
+          // Style the question/options column to highlight correct answers
+          if (data.column.index === 1) {
+            // Add custom styling for questions with options
+            data.cell.styles.lineHeight = 1.3;
+            data.cell.styles.fontSize = 9;
           }
         },
       });
