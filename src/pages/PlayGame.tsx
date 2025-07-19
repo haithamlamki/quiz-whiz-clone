@@ -192,6 +192,8 @@ export default function PlayGame() {
   useEffect(() => {
     if (!game?.id) return;
 
+    console.log(`Setting up PlayGame subscription for game ${game.id} - Anonymous user can subscribe:`, true);
+
     const gameChannel = supabase
       .channel(`game-play-${game.id}`)
       .on(
@@ -204,14 +206,16 @@ export default function PlayGame() {
         },
         (payload) => {
           const updatedGame = payload.new as Game;
-          console.log('Game state updated:', updatedGame);
+          console.log('PlayGame - Game state updated:', updatedGame);
           setGame(updatedGame);
           
           // Handle game state changes
           if (updatedGame.status === 'playing' && gameState === 'waiting') {
+            console.log('PlayGame - Transitioning from waiting to question');
             setGameState('question');
             setQuestionStartTime(Date.now());
           } else if (updatedGame.status === 'finished') {
+            console.log('PlayGame - Game finished, navigating to results');
             navigate(`/final-results/${pin}`);
           }
           
@@ -228,9 +232,56 @@ export default function PlayGame() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('PlayGame subscription status:', status);
+      });
+
+    // Fallback polling for game state updates (essential for anonymous players)
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: gameData } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', game.id)
+          .single();
+        
+        if (gameData) {
+          const currentGame = game;
+          
+          // Check for game state transitions
+          if (gameData.status === 'playing' && gameState === 'waiting') {
+            console.log('PlayGame - Game started detected via polling!');
+            setGame(gameData);
+            setGameState('question');
+            setQuestionStartTime(Date.now());
+          } else if (gameData.status === 'finished') {
+            console.log('PlayGame - Game finished detected via polling!');
+            navigate(`/final-results/${pin}`);
+          }
+          
+          // Check for question changes
+          if (gameData.current_question_index !== currentQuestionIndex && gameData.current_question_index >= 0) {
+            console.log('PlayGame - Question change detected via polling:', gameData.current_question_index);
+            setCurrentQuestionIndex(gameData.current_question_index);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setGameState('question');
+            setQuestionStartTime(Date.now());
+            setSoundTrigger(null);
+          }
+          
+          // Update game state if anything changed
+          if (JSON.stringify(gameData) !== JSON.stringify(currentGame)) {
+            setGame(gameData);
+          }
+        }
+      } catch (error) {
+        console.error('PlayGame polling error:', error);
+      }
+    }, 1500); // Poll every 1.5 seconds
 
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(gameChannel);
     };
   }, [game?.id, gameState, currentQuestionIndex, pin, navigate]);

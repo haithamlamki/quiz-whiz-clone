@@ -91,6 +91,8 @@ export default function GameLobby() {
   useEffect(() => {
     if (!game?.id) return;
 
+    console.log(`Setting up real-time subscription for game ${game.id} - Anonymous user can subscribe:`, true);
+
     // Debounced player updates to prevent spam
     let playerUpdateTimeout: NodeJS.Timeout;
     const debouncedPlayerUpdate = () => {
@@ -100,6 +102,7 @@ export default function GameLobby() {
       }, 300);
     };
 
+    // Set up real-time subscription - works for anonymous users
     const gameChannel = supabase
       .channel(`game-lobby-${game.id}`)
       .on(
@@ -111,10 +114,12 @@ export default function GameLobby() {
           filter: `id=eq.${game.id}`
         },
         (payload) => {
+          console.log('Game state update received:', payload.new);
           const updatedGame = payload.new as Game;
           setGame(updatedGame);
           
           if (updatedGame.status === 'playing' && !gameStarted) {
+            console.log('Game started! Triggering countdown...');
             setGameStarted(true);
             startCountdown();
           }
@@ -140,7 +145,9 @@ export default function GameLobby() {
         },
         debouncedPlayerUpdate
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('GameLobby subscription status:', status);
+      });
 
     const loadPlayers = async () => {
       const { data: playersData } = await supabase
@@ -154,8 +161,32 @@ export default function GameLobby() {
       }
     };
 
+    // Fallback polling to ensure game state updates are received
+    // This is crucial for anonymous players in case real-time fails
+    const pollInterval = setInterval(async () => {
+      if (gameStarted) return; // Stop polling once game has started
+      
+      try {
+        const { data: gameData } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', game.id)
+          .single();
+        
+        if (gameData && gameData.status === 'playing' && !gameStarted) {
+          console.log('Game started detected via polling!');
+          setGame(gameData);
+          setGameStarted(true);
+          startCountdown();
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
     return () => {
       clearTimeout(playerUpdateTimeout);
+      clearInterval(pollInterval);
       supabase.removeChannel(gameChannel);
     };
   }, [game?.id, gameStarted]);
