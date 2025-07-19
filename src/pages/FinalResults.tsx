@@ -183,6 +183,29 @@ export default function FinalResults() {
     }
   };
 
+  const handlePlayAgain = async () => {
+    if (!gameData || !pin) return;
+
+    try {
+      // Get the current game's quiz_id
+      const { data: gameInfo, error: gameError } = await supabase
+        .from('games')
+        .select('quiz_id')
+        .eq('game_pin', pin)
+        .single();
+
+      if (gameError || !gameInfo) {
+        console.error('Failed to get quiz ID');
+        return;
+      }
+
+      // Navigate to host dashboard with the same quiz
+      navigate(`/host/${gameInfo.quiz_id}`);
+    } catch (error) {
+      console.error('Error restarting quiz:', error);
+    }
+  };
+
   const generatePDF = () => {
     if (!gameData || !questions.length) return;
 
@@ -580,37 +603,47 @@ export default function FinalResults() {
                   onClick={generatePDF}
                   disabled={!gameData || !questions.length}
                 >
-                  <Download className="h-5 w-5" />
-                  Download PDF Report
+                  <Download className="h-5 w-5 mr-2" />
+                  Download PDF
                 </Button>
                 <Button 
                   variant="game" 
                   size="lg"
                   onClick={() => navigate('/')}
                 >
-                  <Home className="h-5 w-5" />
+                  <Home className="h-5 w-5 mr-2" />
                   Home
                 </Button>
                 <Button 
                   variant="game" 
                   size="lg"
-                  onClick={() => navigate('/create')}
+                  onClick={handlePlayAgain}
                 >
-                  <RotateCcw className="h-5 w-5" />
-                  Create New Quiz
+                  <RotateCcw className="h-5 w-5 mr-2" />
+                  Play Again
                 </Button>
               </>
             ) : (
-              // Player button
-              <Button 
-                variant="game" 
-                size="lg"
-                onClick={() => navigate('/')}
-                className="bg-primary hover:bg-primary/90 text-white px-8 py-3"
-              >
-                <Home className="h-5 w-5 mr-2" />
-                Join New Game
-              </Button>
+              // Player buttons
+              <>
+                <Button 
+                  variant="game" 
+                  size="lg"
+                  onClick={() => navigate('/')}
+                >
+                  <Home className="h-5 w-5 mr-2" />
+                  Home
+                </Button>
+                <Button 
+                  variant="game" 
+                  size="lg"
+                  onClick={() => navigate('/join')}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Home className="h-5 w-5 mr-2" />
+                  Join New Game
+                </Button>
+              </>
             )}
           </div>
         </div>
