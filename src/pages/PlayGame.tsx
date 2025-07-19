@@ -64,6 +64,9 @@ export default function PlayGame() {
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [soundTrigger, setSoundTrigger] = useState<'correct' | 'incorrect' | 'timeup' | null>(null);
+  
+  // 🔄 Buffer for pending events when quiz isn't loaded yet
+  const [pendingQuestionIndex, setPendingQuestionIndex] = useState<number | null>(null);
 
   // Reset background when leaving this page
   useEffect(() => {
@@ -195,7 +198,7 @@ export default function PlayGame() {
 
   // Subscribe to real-time game updates with robust fallback
   useEffect(() => {
-    if (!game?.id || !pin || !hasQuestions) return; // Wait for both game data AND quiz questions
+    if (!game?.id || !pin) return; // ✅ Subscribe even if quiz not loaded yet
 
     console.log(`🎮 Setting up PlayGame monitoring for PIN: ${pin}, GameID: ${game.id}`);
     console.log(`🎮 Current game state: ${gameState}, Question index: ${currentQuestionIndex}`);
@@ -326,6 +329,11 @@ export default function PlayGame() {
         )
         .on('broadcast', { event: 'game_started' }, (payload) => {
           console.log('📡 [GUEST] Received game_started broadcast:', payload);
+          if (!hasQuestions) {
+            console.log('🛑 Buffering game_started event (quiz still loading)');
+            setPendingQuestionIndex(0); // start with Q0
+            return;
+          }
           if (gameState === 'waiting') {
             setGameState('question');
             setQuestionStartTime(Date.now());
@@ -334,7 +342,16 @@ export default function PlayGame() {
         .on('broadcast', { event: 'question' }, (payload) => {
           console.log('📡 [GUEST] Received question broadcast:', payload);
           const questionIndex = payload.payload?.index;
-          if (questionIndex !== undefined && questionIndex !== currentQuestionIndex) {
+          if (questionIndex === undefined) return;
+
+          if (!hasQuestions) {
+            // quiz not ready yet – store and process later
+            console.log('🛑 Buffering question index', questionIndex, '(quiz still loading)');
+            setPendingQuestionIndex(questionIndex);
+            return;
+          }
+
+          if (questionIndex !== currentQuestionIndex) {
             console.log('📝 BROADCAST: Question change to:', questionIndex);
             setCurrentQuestionIndex(questionIndex);
             setSelectedAnswer(null);
@@ -362,7 +379,21 @@ export default function PlayGame() {
         supabase.removeChannel(gameChannel);
       }
     };
-  }, [game?.id, pin, gameState, currentQuestionIndex, navigate, hasQuestions]);
+  }, [game?.id, pin, gameState, currentQuestionIndex, navigate]);
+
+  // 🔄 Flush pending events when quiz questions become available
+  useEffect(() => {
+    if (hasQuestions && pendingQuestionIndex !== null) {
+      console.log('⚡ Flushing buffered index:', pendingQuestionIndex);
+      setCurrentQuestionIndex(pendingQuestionIndex);
+      setSelectedAnswer(null);
+      setShowResult(false);
+      setGameState('question');
+      setQuestionStartTime(Date.now());
+      setSoundTrigger(null);
+      setPendingQuestionIndex(null); // clear buffer
+    }
+  }, [hasQuestions, pendingQuestionIndex]);
 
   // Debug logging for question state
   console.log('[PlayGame] Debug:', {
