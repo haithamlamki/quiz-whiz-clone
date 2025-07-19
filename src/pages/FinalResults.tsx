@@ -248,8 +248,27 @@ export default function FinalResults() {
 
       console.log(`🎮 Created fresh game with new PIN: ${newGamePin}`);
       
-      // Navigate to the new game lobby
-      navigate(`/game-lobby/${newGamePin}`);
+      // Clear localStorage to force fresh game creation
+      localStorage.removeItem(`quiz_${gameInfo.quiz_id}`);
+      
+      // Store the new game info in localStorage
+      const quizData = await supabase
+        .from('quizzes')
+        .select('*, questions(*)')
+        .eq('id', gameInfo.quiz_id)
+        .single();
+      
+      if (quizData.data) {
+        const freshQuizData = {
+          ...quizData.data,
+          pin: newGamePin
+        };
+        localStorage.setItem(`quiz_${gameInfo.quiz_id}`, JSON.stringify(freshQuizData));
+        localStorage.setItem(`pin_${newGamePin}`, gameInfo.quiz_id);
+      }
+      
+      // Navigate to the host dashboard - it will load the fresh game
+      navigate(`/host/${gameInfo.quiz_id}`);
     } catch (error) {
       console.error('Error creating fresh game:', error);
     }
