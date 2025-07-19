@@ -58,7 +58,8 @@ export default function PlayGame() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
-  const [gameState, setGameState] = useState<'waiting' | 'question' | 'result' | 'finished'>('waiting');
+  const [gameState, setGameState] = useState<'waiting' | 'countdown' | 'question' | 'result' | 'finished'>('waiting');
+  const [countdownSeconds, setCountdownSeconds] = useState(3);
   const [timeBonus, setTimeBonus] = useState(0);
   const [streak, setStreak] = useState(0);
   const [totalCorrect, setTotalCorrect] = useState(0);
@@ -174,6 +175,9 @@ export default function PlayGame() {
         // Check game status and set appropriate state
         if (gameData.status === 'waiting') {
           setGameState('waiting');
+        } else if (gameData.status === 'starting') {
+          setGameState('countdown');
+          setCountdownSeconds(3);
         } else if (gameData.status === 'playing') {
           setGameState('question');
           setQuestionStartTime(Date.now());
@@ -327,6 +331,11 @@ export default function PlayGame() {
             }
           }
         )
+        .on('broadcast', { event: 'countdown' }, (payload) => {
+          console.log('📡 [GUEST] Received countdown broadcast:', payload);
+          setGameState('countdown');
+          setCountdownSeconds(payload.payload?.seconds || 3);
+        })
         .on('broadcast', { event: 'game_started' }, (payload) => {
           console.log('📡 [GUEST] Received game_started broadcast:', payload);
           if (!hasQuestions) {
@@ -334,9 +343,9 @@ export default function PlayGame() {
             setPendingQuestionIndex(0); // start with Q0
             return;
           }
-          if (gameState === 'waiting') {
+          if (gameState === 'countdown' || gameState === 'waiting') {
             setGameState('question');
-            setQuestionStartTime(Date.now());
+            setQuestionStartTime(Date.now()); // ✅ Timer starts now for all players
           }
         })
         .on('broadcast', { event: 'question' }, (payload) => {
@@ -590,6 +599,32 @@ export default function PlayGame() {
               <Button onClick={() => navigate('/')} variant="game">
                 Go Home
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show countdown screen with 3-2-1 countdown
+  if (gameState === 'countdown') {
+    return (
+      <div className="min-h-screen" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-game">
+            <CardContent className="p-12 text-center">
+              <div className="text-6xl mb-6">🚀</div>
+              <h2 className="text-4xl font-bold mb-6">Get Ready!</h2>
+              <p className="text-xl text-muted-foreground mb-8">Question starting in...</p>
+              <div className="text-9xl font-bold text-primary animate-pulse">{countdownSeconds}</div>
+              <p className="text-lg text-muted-foreground mt-6">
+                Welcome, {decodeURIComponent(playerName || '')}!
+              </p>
             </CardContent>
           </Card>
         </div>

@@ -49,7 +49,7 @@ export default function HostDashboard() {
   const { quizId } = useParams();
   const navigate = useNavigate();
   const { getBackgroundStyle, resetBackground, setQuizBackground } = useQuizBackground();
-  const [gameState, setGameState] = useState<'lobby' | 'question' | 'results' | 'leaderboard'>('lobby');
+  const [gameState, setGameState] = useState<'lobby' | 'countdown' | 'question' | 'results' | 'leaderboard'>('lobby');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   const [players, setPlayers] = useState([]);
@@ -268,7 +268,7 @@ export default function HostDashboard() {
     try {
       console.log('[HOST] Starting game for PIN:', String(pin).trim());
       
-      // Update game status in database with verbose logging
+      // Update game status to 'starting' first - this triggers countdown
       const { data: game, error: gameSelectError } = await supabase
         .from('games')
         .select('id')
@@ -282,10 +282,11 @@ export default function HostDashboard() {
 
       console.log('[HOST] Found game ID:', game.id);
 
+      // Set to 'starting' status first
       const { data: updateResult, error: updateError } = await supabase
         .from('games')
         .update({
-          status: 'playing',
+          status: 'starting',
           current_question_index: 0
         })
         .eq('id', game.id)
@@ -298,29 +299,51 @@ export default function HostDashboard() {
         return;
       }
 
-      // Fire realtime broadcast to all players
-      console.log('[HOST] Broadcasting game_started and question events to channel game:' + pin);
+      // Broadcast countdown event
+      console.log('[HOST] Broadcasting countdown to channel game:' + pin);
       const channel = supabase.channel(`game:${pin}`);
       
-      // Send game started event
       await channel.send({
         type: 'broadcast',
-        event: 'game_started',
-        payload: { status: 'playing', gamePin: pin }
-      });
-      
-      // Send first question event
-      await channel.send({
-        type: 'broadcast',
-        event: 'question',
-        payload: { index: 0, gamePin: pin }
+        event: 'countdown',
+        payload: { seconds: 3, gamePin: pin }
       });
 
-      setGameState('question');
-      setCurrentQuestionIndex(0);
-      setTimeLeft(currentQuestion.timeLimit || 20);
+      setGameState('countdown');
       
-      console.log('[HOST] Game started successfully - broadcasted game_started and question 0');
+      // After 3 seconds, switch to playing and start Q1
+      setTimeout(async () => {
+        try {
+          // Update status to 'playing'
+          await supabase
+            .from('games')
+            .update({ status: 'playing' })
+            .eq('id', game.id);
+
+          // Send game started and first question
+          await channel.send({
+            type: 'broadcast',
+            event: 'game_started',
+            payload: { status: 'playing', gamePin: pin }
+          });
+          
+          await channel.send({
+            type: 'broadcast',
+            event: 'question',
+            payload: { index: 0, gamePin: pin }
+          });
+
+          setGameState('question');
+          setCurrentQuestionIndex(0);
+          setTimeLeft(currentQuestion.timeLimit || 20);
+          
+          console.log('[HOST] Game started successfully - players now see Q1 with synchronized timer');
+        } catch (error) {
+          console.error('[HOST] Error in delayed game start:', error);
+        }
+      }, 3000);
+      
+      console.log('[HOST] Countdown initiated - 3 seconds until Q1');
     } catch (error) {
       console.error('[HOST] Error starting game:', error);
     }
@@ -420,6 +443,27 @@ export default function HostDashboard() {
   };
 
   const answerColors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
+
+  if (gameState === 'countdown') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        backgroundImage: 'var(--gradient-classroom)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <Card className="bg-white/95 backdrop-blur-sm shadow-xl p-8 text-center">
+          <CardContent>
+            <div className="text-6xl mb-4">🚀</div>
+            <h2 className="text-3xl font-bold mb-4">Get Ready!</h2>
+            <p className="text-xl text-muted-foreground mb-6">Question 1 starting in...</p>
+            <div className="text-8xl font-bold text-primary animate-pulse">3</div>
+            <p className="text-lg text-muted-foreground mt-4">All players will see the question simultaneously!</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (gameState === 'lobby') {
     return (
