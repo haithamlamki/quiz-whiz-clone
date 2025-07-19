@@ -73,8 +73,24 @@ export default function GameLobby() {
 
         // Check if game has started
         if (gameData.status === 'playing') {
+          console.log('🚀 Game already started on load, initiating countdown...');
           setGameStarted(true);
-          startCountdown();
+          // Define startCountdown inline to avoid hoisting issues
+          setTimeout(() => {
+            const countdownInterval = setInterval(() => {
+              setCountdown(prev => {
+                console.log(`⏰ Initial countdown: ${prev - 1}`);
+                if (prev <= 1) {
+                  clearInterval(countdownInterval);
+                  const playUrl = `/play/${pin}/${encodeURIComponent(playerName)}`;
+                  console.log(`🎮 Initial navigation to game: ${playUrl}`);
+                  navigate(playUrl);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          }, 100);
         }
 
       } catch (err) {
@@ -87,116 +103,166 @@ export default function GameLobby() {
     loadGameData();
   }, [pin, playerName]);
 
-  // Subscribe to real-time game and player updates
+  // Subscribe to real-time game and player updates with robust fallback
   useEffect(() => {
-    if (!game?.id) return;
+    if (!game?.id || !pin) return;
 
-    console.log(`Setting up real-time subscription for game ${game.id} - Anonymous user can subscribe:`, true);
+    console.log(`🔄 Setting up game monitoring for PIN: ${pin}, GameID: ${game.id}`);
+    console.log(`🔄 Anonymous user status: ${true} (no auth required for game status)`);
 
-    // Debounced player updates to prevent spam
+    let pollInterval: NodeJS.Timeout;
     let playerUpdateTimeout: NodeJS.Timeout;
-    const debouncedPlayerUpdate = () => {
-      clearTimeout(playerUpdateTimeout);
-      playerUpdateTimeout = setTimeout(() => {
-        loadPlayers();
-      }, 300);
-    };
+    let gameChannel: any;
 
-    // Set up real-time subscription - works for anonymous users
-    const gameChannel = supabase
-      .channel(`game-lobby-${game.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${game.id}`
-        },
-        (payload) => {
-          console.log('Game state update received:', payload.new);
-          const updatedGame = payload.new as Game;
-          setGame(updatedGame);
-          
-          if (updatedGame.status === 'playing' && !gameStarted) {
-            console.log('Game started! Triggering countdown...');
-            setGameStarted(true);
-            startCountdown();
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'players',
-          filter: `game_id=eq.${game.id}`
-        },
-        debouncedPlayerUpdate
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'players',
-          filter: `game_id=eq.${game.id}`
-        },
-        debouncedPlayerUpdate
-      )
-      .subscribe((status) => {
-        console.log('GameLobby subscription status:', status);
-      });
-
-    const loadPlayers = async () => {
-      const { data: playersData } = await supabase
-        .from('players')
-        .select('*')
-        .eq('game_id', game.id)
-        .order('joined_at', { ascending: true });
-
-      if (playersData) {
-        setPlayers(playersData);
-      }
-    };
-
-    // Fallback polling to ensure game state updates are received
-    // This is crucial for anonymous players in case real-time fails
-    const pollInterval = setInterval(async () => {
-      if (gameStarted) return; // Stop polling once game has started
-      
+    // Robust polling function - primary method for anonymous players
+    const pollGameStatus = async () => {
       try {
-        const { data: gameData } = await supabase
+        console.log(`🔍 Polling game status for PIN: ${pin}`);
+        
+        // Direct query by game PIN (more reliable than using game ID)
+        const { data: gameData, error } = await supabase
           .from('games')
           .select('*')
-          .eq('id', game.id)
+          .eq('game_pin', pin)
           .single();
-        
-        if (gameData && gameData.status === 'playing' && !gameStarted) {
-          console.log('Game started detected via polling!');
-          setGame(gameData);
-          setGameStarted(true);
-          startCountdown();
+
+        if (error) {
+          console.error('❌ Error polling game status:', error);
+          return;
+        }
+
+        if (gameData) {
+          console.log(`📊 Polled game status: ${gameData.status} (current: ${game.status})`);
+          
+          // Update game state if it changed
+          if (gameData.status !== game.status || gameData.current_question_index !== game.current_question_index) {
+            console.log(`🔄 Game state changed - Status: ${gameData.status}, Question: ${gameData.current_question_index}`);
+            setGame(gameData);
+          }
+          
+          // Check if game started
+          if (gameData.status === 'playing' && !gameStarted) {
+            console.log('🚀 GAME STARTED DETECTED! Initiating countdown...');
+            setGameStarted(true);
+            startCountdown();
+            clearInterval(pollInterval); // Stop polling once game starts
+          }
         }
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error('❌ Polling exception:', error);
       }
-    }, 2000); // Poll every 2 seconds
+    };
+
+    // Start polling immediately and then every 2 seconds
+    pollGameStatus();
+    pollInterval = setInterval(pollGameStatus, 2000);
+
+    // Secondary: Real-time subscription (as backup/enhancement)
+    const setupRealtime = () => {
+      console.log('🔄 Setting up real-time subscription as secondary method...');
+      
+      gameChannel = supabase
+        .channel(`game-lobby-${game.id}-${Date.now()}`) // Unique channel name
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'games',
+            filter: `id=eq.${game.id}`
+          },
+          (payload) => {
+            console.log('📡 Real-time game update received:', payload.new);
+            const updatedGame = payload.new as Game;
+            setGame(updatedGame);
+            
+            if (updatedGame.status === 'playing' && !gameStarted) {
+              console.log('🚀 GAME STARTED VIA REALTIME! Initiating countdown...');
+              setGameStarted(true);
+              startCountdown();
+              clearInterval(pollInterval); // Stop polling
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'players',
+            filter: `game_id=eq.${game.id}`
+          },
+          () => {
+            clearTimeout(playerUpdateTimeout);
+            playerUpdateTimeout = setTimeout(loadPlayers, 300);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'players',
+            filter: `game_id=eq.${game.id}`
+          },
+          () => {
+            clearTimeout(playerUpdateTimeout);
+            playerUpdateTimeout = setTimeout(loadPlayers, 300);
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 GameLobby real-time subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Real-time subscription active');
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            console.log('⚠️ Real-time subscription failed, relying on polling');
+          }
+        });
+    };
+
+    // Setup real-time as secondary method
+    setupRealtime();
+
+    const loadPlayers = async () => {
+      try {
+        const { data: playersData } = await supabase
+          .from('players')
+          .select('*')
+          .eq('game_id', game.id)
+          .order('joined_at', { ascending: true });
+
+        if (playersData) {
+          setPlayers(playersData);
+          console.log(`👥 Loaded ${playersData.length} players`);
+        }
+      } catch (error) {
+        console.error('❌ Error loading players:', error);
+      }
+    };
+
+    // Load players initially
+    loadPlayers();
 
     return () => {
-      clearTimeout(playerUpdateTimeout);
+      console.log('🧹 Cleaning up GameLobby subscriptions');
       clearInterval(pollInterval);
-      supabase.removeChannel(gameChannel);
+      clearTimeout(playerUpdateTimeout);
+      if (gameChannel) {
+        supabase.removeChannel(gameChannel);
+      }
     };
-  }, [game?.id, gameStarted]);
+  }, [game?.id, pin, gameStarted]);
 
   const startCountdown = () => {
+    console.log('⏰ Starting countdown from 3...');
     const countdownInterval = setInterval(() => {
       setCountdown(prev => {
+        console.log(`⏰ Countdown: ${prev - 1}`);
         if (prev <= 1) {
           clearInterval(countdownInterval);
-          navigate(`/play/${pin}/${encodeURIComponent(playerName)}`);
+          const playUrl = `/play/${pin}/${encodeURIComponent(playerName)}`;
+          console.log(`🎮 Navigating to game: ${playUrl}`);
+          navigate(playUrl);
           return 0;
         }
         return prev - 1;

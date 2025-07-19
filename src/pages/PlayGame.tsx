@@ -188,80 +188,57 @@ export default function PlayGame() {
     loadGameData();
   }, [pin, playerName, navigate]);
 
-  // Subscribe to real-time game updates
+  // Subscribe to real-time game updates with robust fallback
   useEffect(() => {
-    if (!game?.id) return;
+    if (!game?.id || !pin) return;
 
-    console.log(`Setting up PlayGame subscription for game ${game.id} - Anonymous user can subscribe:`, true);
+    console.log(`🎮 Setting up PlayGame monitoring for PIN: ${pin}, GameID: ${game.id}`);
+    console.log(`🎮 Current game state: ${gameState}, Question index: ${currentQuestionIndex}`);
 
-    const gameChannel = supabase
-      .channel(`game-play-${game.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${game.id}`
-        },
-        (payload) => {
-          const updatedGame = payload.new as Game;
-          console.log('PlayGame - Game state updated:', updatedGame);
-          setGame(updatedGame);
-          
-          // Handle game state changes
-          if (updatedGame.status === 'playing' && gameState === 'waiting') {
-            console.log('PlayGame - Transitioning from waiting to question');
-            setGameState('question');
-            setQuestionStartTime(Date.now());
-          } else if (updatedGame.status === 'finished') {
-            console.log('PlayGame - Game finished, navigating to results');
-            navigate(`/final-results/${pin}`);
-          }
-          
-          // Handle question changes
-          if (updatedGame.current_question_index !== currentQuestionIndex && updatedGame.current_question_index >= 0) {
-            console.log('Question index changed to:', updatedGame.current_question_index);
-            setCurrentQuestionIndex(updatedGame.current_question_index);
-            setSelectedAnswer(null);
-            setShowResult(false);
-            setGameState('question');
-            setQuestionStartTime(Date.now());
-            // Reset timer state for new question
-            setSoundTrigger(null);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('PlayGame subscription status:', status);
-      });
+    let pollInterval: NodeJS.Timeout;
+    let gameChannel: any;
 
-    // Fallback polling for game state updates (essential for anonymous players)
-    const pollInterval = setInterval(async () => {
+    // Robust polling function - primary method for game state sync
+    const pollGameState = async () => {
       try {
-        const { data: gameData } = await supabase
+        console.log(`🔍 PlayGame polling for PIN: ${pin}`);
+        
+        const { data: gameData, error } = await supabase
           .from('games')
           .select('*')
-          .eq('id', game.id)
+          .eq('game_pin', pin)
           .single();
-        
+
+        if (error) {
+          console.error('❌ PlayGame polling error:', error);
+          return;
+        }
+
         if (gameData) {
-          const currentGame = game;
+          const statusChanged = gameData.status !== game.status;
+          const questionChanged = gameData.current_question_index !== currentQuestionIndex;
           
-          // Check for game state transitions
-          if (gameData.status === 'playing' && gameState === 'waiting') {
-            console.log('PlayGame - Game started detected via polling!');
+          console.log(`📊 PlayGame poll result - Status: ${gameData.status} (was: ${game.status}), Question: ${gameData.current_question_index} (was: ${currentQuestionIndex})`);
+          
+          if (statusChanged || questionChanged) {
+            console.log(`🔄 PlayGame state change detected`);
             setGame(gameData);
+          }
+          
+          // Handle state transitions
+          if (gameData.status === 'playing' && gameState === 'waiting') {
+            console.log('🎮 TRANSITION: waiting → playing');
             setGameState('question');
             setQuestionStartTime(Date.now());
           } else if (gameData.status === 'finished') {
-            console.log('PlayGame - Game finished detected via polling!');
+            console.log('🏁 GAME FINISHED - navigating to results');
             navigate(`/final-results/${pin}`);
+            return; // Stop polling
           }
           
-          // Check for question changes
-          if (gameData.current_question_index !== currentQuestionIndex && gameData.current_question_index >= 0) {
-            console.log('PlayGame - Question change detected via polling:', gameData.current_question_index);
+          // Handle question progression
+          if (questionChanged && gameData.current_question_index >= 0) {
+            console.log(`📝 QUESTION CHANGE: ${currentQuestionIndex} → ${gameData.current_question_index}`);
             setCurrentQuestionIndex(gameData.current_question_index);
             setSelectedAnswer(null);
             setShowResult(false);
@@ -269,22 +246,72 @@ export default function PlayGame() {
             setQuestionStartTime(Date.now());
             setSoundTrigger(null);
           }
-          
-          // Update game state if anything changed
-          if (JSON.stringify(gameData) !== JSON.stringify(currentGame)) {
-            setGame(gameData);
-          }
         }
       } catch (error) {
-        console.error('PlayGame polling error:', error);
+        console.error('❌ PlayGame polling exception:', error);
       }
-    }, 1500); // Poll every 1.5 seconds
+    };
+
+    // Start polling immediately and every 1.5 seconds
+    pollGameState();
+    pollInterval = setInterval(pollGameState, 1500);
+
+    // Secondary: Real-time subscription (as enhancement)
+    const setupRealtime = () => {
+      console.log('🔄 Setting up PlayGame real-time subscription...');
+      
+      gameChannel = supabase
+        .channel(`game-play-${game.id}-${Date.now()}`) // Unique channel
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'games',
+            filter: `id=eq.${game.id}`
+          },
+          (payload) => {
+            const updatedGame = payload.new as Game;
+            console.log('📡 PlayGame real-time update:', updatedGame);
+            setGame(updatedGame);
+            
+            // Handle game state changes via real-time
+            if (updatedGame.status === 'playing' && gameState === 'waiting') {
+              console.log('🎮 REALTIME: waiting → playing');
+              setGameState('question');
+              setQuestionStartTime(Date.now());
+            } else if (updatedGame.status === 'finished') {
+              console.log('🏁 REALTIME: Game finished');
+              navigate(`/final-results/${pin}`);
+            }
+            
+            // Handle question changes via real-time
+            if (updatedGame.current_question_index !== currentQuestionIndex && updatedGame.current_question_index >= 0) {
+              console.log('📝 REALTIME: Question change to:', updatedGame.current_question_index);
+              setCurrentQuestionIndex(updatedGame.current_question_index);
+              setSelectedAnswer(null);
+              setShowResult(false);
+              setGameState('question');
+              setQuestionStartTime(Date.now());
+              setSoundTrigger(null);
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 PlayGame subscription status:', status);
+        });
+    };
+
+    setupRealtime();
 
     return () => {
+      console.log('🧹 Cleaning up PlayGame monitoring');
       clearInterval(pollInterval);
-      supabase.removeChannel(gameChannel);
+      if (gameChannel) {
+        supabase.removeChannel(gameChannel);
+      }
     };
-  }, [game?.id, gameState, currentQuestionIndex, pin, navigate]);
+  }, [game?.id, pin, gameState, currentQuestionIndex, navigate]);
 
   const currentQuestion = quiz?.questions[currentQuestionIndex];
   const isLastQuestion = quiz ? currentQuestionIndex === quiz.questions.length - 1 : false;
@@ -293,7 +320,7 @@ export default function PlayGame() {
     if (gameState === 'question') {
       const startTime = Date.now();
       setQuestionStartTime(startTime);
-      console.log(`Question ${currentQuestionIndex + 1} started at:`, new Date(startTime).toISOString());
+      console.log(`📝 Question ${currentQuestionIndex + 1} started at:`, new Date(startTime).toISOString());
     }
   }, [currentQuestionIndex, gameState]);
 
