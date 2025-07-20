@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,17 +9,24 @@ import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/Logo';
 import { QuestionEditor } from '@/components/QuestionEditor';
 import { QuestionsList } from '@/components/QuestionsList';
-import { ArrowLeft, Save, Upload, Eye, Settings, Wand2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, Upload, Eye, Settings, Wand2, Loader2 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Question } from '@/types/quiz';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { ErrorCard } from '@/components/ErrorCard';
+import { Loader } from '@/components/Loader';
 
 export default function CreateQuiz() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const editQuizId = searchParams.get('edit');
+  
+  const [isLoading, setIsLoading] = useState(!!editQuizId);
+  const [error, setError] = useState<string | null>(null);
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDescription, setQuizDescription] = useState('');
   const [backgroundTheme, setBackgroundTheme] = useState('bg-sky-600');
@@ -50,6 +57,97 @@ export default function CreateQuiz() {
   const handleQuestionDelete = (id: string) => {
     setQuestions(questions.filter(q => q.id !== id));
   };
+
+  // Load quiz data when in edit mode
+  useEffect(() => {
+    const loadQuizData = async () => {
+      if (!editQuizId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch quiz with all questions
+        const { data: quizData, error: quizError } = await supabase
+          .from('quizzes')
+          .select(`
+            *,
+            questions (*)
+          `)
+          .eq('id', editQuizId)
+          .single();
+
+        if (quizError) {
+          throw new Error('Failed to fetch quiz data');
+        }
+
+        if (!quizData) {
+          throw new Error('Quiz not found');
+        }
+
+        // Populate form with quiz data
+        setQuizTitle(quizData.title || '');
+        setQuizDescription(quizData.description || '');
+
+        // Transform questions from database format to Question type
+        if (quizData.questions && quizData.questions.length > 0) {
+          const transformedQuestions: Question[] = quizData.questions.map((dbQuestion: any, index: number) => {
+            const options = dbQuestion.options || {};
+            
+            return {
+              id: dbQuestion.id,
+              type: options.type || 'multiple-choice',
+              question: dbQuestion.question_text,
+              timeLimit: dbQuestion.time_limit || 20,
+              points: options.points || 1000,
+              order: index,
+              // Add type-specific properties based on the question type
+              ...(options.type === 'multiple-choice' && {
+                answers: options.answers || [],
+                correctAnswer: options.correctAnswer
+              }),
+              ...(options.type === 'true-false' && {
+                correctAnswer: options.correctAnswer
+              }),
+              ...(options.type === 'puzzle' && {
+                items: options.items || []
+              }),
+              ...(options.type === 'poll' && {
+                options: options.options || []
+              }),
+              ...(options.type === 'hotspot' && {
+                imageUrl: options.imageUrl,
+                hotspots: options.hotspots || []
+              })
+            } as Question;
+          });
+          
+          setQuestions(transformedQuestions);
+        }
+
+        toast({
+          title: "Quiz Loaded",
+          description: `Editing "${quizData.title}" with ${quizData.questions?.length || 0} questions.`,
+        });
+
+      } catch (error: any) {
+        console.error('Error loading quiz:', error);
+        setError(error.message || 'Failed to load quiz data');
+        toast({
+          title: "Failed to Load Quiz",
+          description: error.message || "Unable to load quiz data. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadQuizData();
+  }, [editQuizId, toast]);
 
   const saveQuiz = async () => {
     // Validation with specific error messages
@@ -106,31 +204,55 @@ export default function CreateQuiz() {
     }
 
     try {
-      // Generate proper UUID for the quiz
-      const quizId = crypto.randomUUID();
+      const isEditing = !!editQuizId;
+      const quizId = isEditing ? editQuizId : crypto.randomUUID();
       
-      // Save quiz to Supabase with proper user ownership
+      // Prepare quiz data
       const quizData = {
-        id: quizId,
         title: quizTitle.trim(),
         description: quizDescription.trim(),
-        user_id: user?.id || null // Set user_id if authenticated, null for anonymous
+        user_id: user?.id || null
       };
       
-      console.log('Attempting to save quiz with data:', quizData);
+      console.log(`Attempting to ${isEditing ? 'update' : 'create'} quiz with data:`, quizData);
       
-      const { error: quizError } = await supabase
-        .from('quizzes')
-        .insert(quizData);
+      if (isEditing) {
+        // Update existing quiz
+        const { error: quizError } = await supabase
+          .from('quizzes')
+          .update(quizData)
+          .eq('id', quizId);
 
-      if (quizError) {
-        console.error('Quiz creation error:', quizError);
-        throw new Error(`Failed to save quiz: ${quizError.message}`);
+        if (quizError) {
+          console.error('Quiz update error:', quizError);
+          throw new Error(`Failed to update quiz: ${quizError.message}`);
+        }
+
+        // Delete existing questions
+        const { error: deleteError } = await supabase
+          .from('questions')
+          .delete()
+          .eq('quiz_id', quizId);
+
+        if (deleteError) {
+          console.error('Questions deletion error:', deleteError);
+          throw new Error(`Failed to update questions: ${deleteError.message}`);
+        }
+      } else {
+        // Create new quiz
+        const { error: quizError } = await supabase
+          .from('quizzes')
+          .insert({ id: quizId, ...quizData });
+
+        if (quizError) {
+          console.error('Quiz creation error:', quizError);
+          throw new Error(`Failed to create quiz: ${quizError.message}`);
+        }
       }
 
-      // Save questions to Supabase
+      // Save/update questions
       const questionsData = questions.sort((a, b) => a.order - b.order).map(q => ({
-        id: crypto.randomUUID(),
+        id: isEditing ? q.id : crypto.randomUUID(),
         quiz_id: quizId,
         question_text: q.question,
         options: {
@@ -171,8 +293,8 @@ export default function CreateQuiz() {
       localStorage.setItem(`quiz_${quizId}`, JSON.stringify(localQuizData));
       
       toast({
-        title: "Quiz Saved Successfully!",
-        description: `Your quiz "${quizTitle}" has been saved and published.`,
+        title: isEditing ? "Quiz Updated Successfully!" : "Quiz Saved Successfully!",
+        description: `Your quiz "${quizTitle}" has been ${isEditing ? 'updated' : 'saved'} and published.`,
       });
       
       navigate(`/quiz-saved/${quizId}`);
@@ -208,6 +330,76 @@ export default function CreateQuiz() {
     return Object.entries(stats);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div 
+        className="min-h-screen" 
+        style={{
+          backgroundImage: 'var(--gradient-classroom)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-4 mb-8 pt-4">
+              <Button variant="glass" onClick={() => navigate('/')}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <div className="flex items-center gap-3">
+                <Logo size="md" />
+                <span className="text-2xl font-bold text-white">Abraj Quiz</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-center min-h-[400px]">
+              <Loader />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div 
+        className="min-h-screen" 
+        style={{
+          backgroundImage: 'var(--gradient-classroom)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-4 mb-8 pt-4">
+              <Button variant="glass" onClick={() => navigate('/')}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <div className="flex items-center gap-3">
+                <Logo size="md" />
+                <span className="text-2xl font-bold text-white">Abraj Quiz</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-center min-h-[400px]">
+              <ErrorCard 
+                title="Failed to Load Quiz"
+                message={error}
+                onRetry={() => window.location.reload()}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="min-h-screen" 
@@ -231,7 +423,9 @@ export default function CreateQuiz() {
               <span className="text-2xl font-bold text-white">Abraj Quiz</span>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <h1 className="text-4xl font-bold text-white">Create Quiz</h1>
+              <h1 className="text-4xl font-bold text-white">
+                {editQuizId ? 'Edit Quiz' : 'Create Quiz'}
+              </h1>
               <Wand2 className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -499,7 +693,7 @@ export default function CreateQuiz() {
               className="btn-float"
             >
               <Save className="h-6 w-6" />
-              Save & Publish Quiz
+              {editQuizId ? 'Update Quiz' : 'Save & Publish Quiz'}
             </Button>
           </div>
         </div>
