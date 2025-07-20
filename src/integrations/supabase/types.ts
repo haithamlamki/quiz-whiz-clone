@@ -272,6 +272,10 @@ export type Database = {
         Args: { player_id_in: string; score_to_add: number }
         Returns: undefined
       }
+      reset_players: {
+        Args: { game_id_in: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

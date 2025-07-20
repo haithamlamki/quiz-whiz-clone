@@ -80,7 +80,7 @@ export default function FinalResults() {
             )
           `)
           .eq('game_pin', pin)
-          .single();
+          .maybeSingle();
 
         if (gameError || !gameInfo) {
           setError('Game not found');
@@ -99,7 +99,7 @@ export default function FinalResults() {
         });
         setIsHost(isUserHost);
 
-        // Get all players with their detailed answers
+        // Get all players with their detailed answers and scores
         const { data: playersData, error: playersError } = await supabase
           .from('players')
           .select(`
@@ -607,6 +607,7 @@ export default function FinalResults() {
           <CardContent className="p-8 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Loading Results...</h2>
+            <p className="text-muted-foreground">Calculating final scores from real game data</p>
           </CardContent>
         </Card>
       </div>
@@ -624,11 +625,16 @@ export default function FinalResults() {
         <Card className="bg-white/95 backdrop-blur-sm shadow-game">
           <CardContent className="p-8 text-center">
             <div className="text-4xl mb-4">❌</div>
-            <h2 className="text-2xl font-bold mb-2">Error</h2>
+            <h2 className="text-2xl font-bold mb-2">Error Loading Results</h2>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => navigate('/')} variant="game">
-              Go Home
-            </Button>
+            <div className="space-x-2">
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Retry
+              </Button>
+              <Button onClick={() => navigate('/')} variant="game">
+                Go Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

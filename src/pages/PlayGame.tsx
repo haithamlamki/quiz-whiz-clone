@@ -242,9 +242,9 @@ export default function PlayGame() {
             setGame(gameData);
           }
           
-          // Handle state transitions
-          if (gameData.status === 'playing' && gameState === 'waiting') {
-            console.log('🎮 TRANSITION: waiting → playing');
+          // Handle state transitions - only enter question state when hasQuestions and playing
+          if (gameData.status === 'playing' && hasQuestions && gameState !== 'question') {
+            console.log('🎮 TRANSITION: waiting → playing (with questions loaded)');
             setGameState('question');
             setQuestionStartTime(Date.now());
           } else if (gameData.status === 'finished') {
@@ -265,8 +265,8 @@ export default function PlayGame() {
           }
           
           // Special case: if game just started (status changed to playing) and question index is 0
-          if (gameData.status === 'playing' && gameData.current_question_index === 0 && gameState === 'waiting') {
-            console.log('🎮 SPECIAL CASE: Game started with Q0');
+          if (gameData.status === 'playing' && gameData.current_question_index === 0 && hasQuestions && gameState !== 'question') {
+            console.log('🎮 SPECIAL CASE: Game started with Q0 (with questions loaded)');
             setCurrentQuestionIndex(0);
             setSelectedAnswer(null);
             setShowResult(false);
@@ -280,9 +280,9 @@ export default function PlayGame() {
       }
     };
 
-    // Start polling immediately and every 1.5 seconds
+    // Start polling immediately and every 700ms (improved frequency)
     pollGameState();
-    pollInterval = setInterval(pollGameState, 1500);
+    pollInterval = setInterval(pollGameState, 700);
 
     // Enhanced real-time subscription with broadcast support
     const setupRealtime = () => {
@@ -303,9 +303,9 @@ export default function PlayGame() {
             console.log('📡 PlayGame DB update:', updatedGame);
             setGame(updatedGame);
             
-            // Handle game state changes via real-time
-            if (updatedGame.status === 'playing' && gameState === 'waiting') {
-              console.log('🎮 REALTIME DB: waiting → playing');
+            // Handle game state changes via real-time - guard with hasQuestions
+            if (updatedGame.status === 'playing' && hasQuestions && gameState !== 'question') {
+              console.log('🎮 REALTIME DB: waiting → playing (with questions loaded)');
               setGameState('question');
               setQuestionStartTime(Date.now());
             } else if (updatedGame.status === 'finished') {
@@ -325,8 +325,8 @@ export default function PlayGame() {
             }
             
             // Special case: if game just started (status changed to playing) and question index is 0
-            if (updatedGame.status === 'playing' && updatedGame.current_question_index === 0 && gameState === 'waiting') {
-              console.log('🎮 REALTIME SPECIAL CASE: Game started with Q0');
+            if (updatedGame.status === 'playing' && updatedGame.current_question_index === 0 && hasQuestions && gameState !== 'question') {
+              console.log('🎮 REALTIME SPECIAL CASE: Game started with Q0 (with questions loaded)');
               setCurrentQuestionIndex(0);
               setSelectedAnswer(null);
               setShowResult(false);

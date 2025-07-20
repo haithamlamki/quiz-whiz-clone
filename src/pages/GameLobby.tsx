@@ -71,26 +71,15 @@ export default function GameLobby() {
 
         setLoading(false);
 
-        // Check if game has started - check for both 'starting' and 'playing' status
-        if (gameData.status === 'starting' || gameData.status === 'playing') {
-          console.log('🚀 Game already started on load, initiating countdown...');
+        // Check game status and handle accordingly
+        if (gameData.status === 'starting') {
+          console.log('🚀 Game status is starting - transitioning to countdown...');
           setGameStarted(true);
-          // Define startCountdown inline to avoid hoisting issues
-          setTimeout(() => {
-            const countdownInterval = setInterval(() => {
-              setCountdown(prev => {
-                console.log(`⏰ Initial countdown: ${prev - 1}`);
-                if (prev <= 1) {
-                  clearInterval(countdownInterval);
-                  const playUrl = `/play/${pin}/${encodeURIComponent(playerName)}`;
-                  console.log(`🎮 Initial navigation to game: ${playUrl}`);
-                  navigate(playUrl);
-                  return 0;
-                }
-                return prev - 1;
-              });
-            }, 1000);
-          }, 100);
+          startCountdown();
+        } else if (gameData.status === 'playing') {
+          console.log('🚀 Game already playing - navigating directly...');
+          const playUrl = `/play/${pin}/${encodeURIComponent(playerName)}`;
+          navigate(playUrl);
         }
 
       } catch (err) {
@@ -143,12 +132,16 @@ export default function GameLobby() {
             setGame(gameData);
           }
           
-          // Check if game started - check for both 'starting' and 'playing' status
-          if ((gameData.status === 'starting' || gameData.status === 'playing') && !gameStarted) {
-            console.log('🚀 [GUEST] GAME STARTED DETECTED via polling! Initiating countdown...');
+          // Handle different game status transitions
+          if (gameData.status === 'starting' && !gameStarted) {
+            console.log('🚀 [GUEST] GAME STARTING DETECTED via polling! Initiating countdown...');
             setGameStarted(true);
             startCountdown();
             clearInterval(pollInterval); // Stop polling once game starts
+          } else if (gameData.status === 'playing') {
+            console.log('🚀 [GUEST] GAME PLAYING DETECTED via polling! Navigating to game...');
+            const playUrl = `/play/${pin}/${encodeURIComponent(playerName)}`;
+            navigate(playUrl);
           }
         }
       } catch (error) {
@@ -180,11 +173,15 @@ export default function GameLobby() {
             const updatedGame = payload.new as Game;
             setGame(updatedGame);
             
-            if ((updatedGame.status === 'starting' || updatedGame.status === 'playing') && !gameStarted) {
-              console.log('🚀 [GUEST] GAME STARTED VIA REALTIME! Initiating countdown...');
+            if (updatedGame.status === 'starting' && !gameStarted) {
+              console.log('🚀 [GUEST] GAME STARTING VIA REALTIME! Initiating countdown...');
               setGameStarted(true);
               startCountdown();
               clearInterval(pollInterval);
+            } else if (updatedGame.status === 'playing') {
+              console.log('🚀 [GUEST] GAME PLAYING VIA REALTIME! Navigating to game...');
+              const playUrl = `/play/${pin}/${encodeURIComponent(playerName)}`;
+              navigate(playUrl);
             }
           }
         )

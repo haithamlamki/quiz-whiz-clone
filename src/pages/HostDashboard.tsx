@@ -7,9 +7,10 @@ import { Leaderboard } from '@/components/Leaderboard';
 import { PlayerJoinNotification, PlayerCounter } from '@/components/PlayerJoinNotification';
 import { GamePinDisplay, PinGenerator } from '@/components/GamePinDisplay';
 import Logo from '@/components/Logo';
-import { Users, Play, SkipForward, Trophy, Clock, Eye, Settings, Pause } from 'lucide-react';
+import { Users, Play, SkipForward, Trophy, Clock, Eye, Settings, Pause, Share2 } from 'lucide-react';
 import { useQuizBackground } from '@/contexts/QuizBackgroundContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 // Sample quiz data
 const sampleQuiz = {
@@ -48,6 +49,7 @@ const sampleQuiz = {
 export default function HostDashboard() {
   const { quizId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { getBackgroundStyle, resetBackground, setQuizBackground } = useQuizBackground();
   const [gameState, setGameState] = useState<'lobby' | 'countdown' | 'question' | 'results' | 'leaderboard'>('lobby');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -273,10 +275,13 @@ export default function HostDashboard() {
     try {
       console.log('[HOST] 🚦 All players ready - starting question timer');
       
-      // Update status to 'playing'
+      // Update status to 'playing' and set question index
       await supabase
         .from('games')
-        .update({ status: 'playing' })
+        .update({ 
+          status: 'playing',
+          current_question_index: 0
+        })
         .eq('id', gameId);
 
       // Send game started and first question
@@ -312,7 +317,7 @@ export default function HostDashboard() {
       readyPlayers.current.clear();
       setWaitingForReady(true);
       
-      // Update game status to 'starting' first - this triggers countdown
+      // Get game ID and cleanup old players first
       const { data: game, error: gameSelectError } = await supabase
         .from('games')
         .select('id')
@@ -325,6 +330,10 @@ export default function HostDashboard() {
       }
 
       console.log('[HOST] Found game ID:', game.id);
+
+      // CLEANUP: Reset all players before starting
+      console.log('[HOST] Cleaning up old players...');
+      await supabase.rpc('reset_players', { game_id_in: game.id });
 
       // Set to 'starting' status first
       const { data: updateResult, error: updateError } = await supabase
@@ -486,6 +495,24 @@ export default function HostDashboard() {
     setGameState('leaderboard');
   };
 
+  const handleShareGame = async () => {
+    try {
+      const joinUrl = `${window.location.origin}/join/${pin}`;
+      await navigator.clipboard.writeText(joinUrl);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with players to join the game.",
+      });
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const answerColors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
 
   if (gameState === 'countdown') {
@@ -561,14 +588,22 @@ export default function HostDashboard() {
                     localStorage.setItem(`pin_${newPin}`, quizId);
                   }
                 }} />
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/create')}
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Edit Quiz
-                </Button>
+                 <Button
+                   variant="outline"
+                   onClick={handleShareGame}
+                   className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                 >
+                   <Share2 className="h-4 w-4 mr-2" />
+                   Share Game
+                 </Button>
+                 <Button
+                   variant="outline"
+                   onClick={() => navigate('/create')}
+                   className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                 >
+                   <Settings className="h-4 w-4 mr-2" />
+                   Edit Quiz
+                 </Button>
               </div>
             </div>
           </div>
