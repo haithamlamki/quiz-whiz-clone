@@ -238,20 +238,22 @@ export default function CreateQuiz() {
 
           {/* Main Content */}
           <Tabs defaultValue="setup" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 bg-white/20 backdrop-blur-sm">
-              <TabsTrigger value="setup" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Setup
-              </TabsTrigger>
-              <TabsTrigger value="questions" className="flex items-center gap-2">
-                <Wand2 className="h-4 w-4" />
-                Questions ({questions.length})
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Preview
-              </TabsTrigger>
-            </TabsList>
+            <div className="wizard-container">
+              <TabsList className="wizard-steps grid w-full grid-cols-3 bg-transparent p-0 gap-2">
+                <TabsTrigger value="setup" className="wizard-step flex items-center gap-2 data-[state=active]:wizard-step-active">
+                  <Settings className="h-4 w-4" />
+                  Setup
+                </TabsTrigger>
+                <TabsTrigger value="questions" className="wizard-step flex items-center gap-2 data-[state=active]:wizard-step-active">
+                  <Wand2 className="h-4 w-4" />
+                  Questions ({questions.length})
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="wizard-step flex items-center gap-2 data-[state=active]:wizard-step-active">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Quiz Setup Tab */}
             <TabsContent value="setup" className="space-y-6">

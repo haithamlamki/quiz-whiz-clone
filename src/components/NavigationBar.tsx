@@ -7,14 +7,12 @@ import { Menu, X, Home, Plus, Users, Trophy, Settings, History, LogIn, LogOut } 
 
 const publicNavigationItems = [
   { label: 'Home', href: '/', icon: Home },
-  { label: 'Discover', href: '/discover', icon: Users },
 ];
 
 const hostNavigationItems = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Create Quiz', href: '/create', icon: Plus },
   { label: 'Quiz History', href: '/history', icon: History },
-  { label: 'Discover', href: '/discover', icon: Users },
 ];
 
 export function NavigationBar() {
@@ -64,36 +62,16 @@ export function NavigationBar() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/join')}
-              className="flex items-center gap-2"
-            >
-              <Users className="h-4 w-4" />
-              Quick Join
-            </Button>
             {isHost ? (
-              <>
-                <Button
-                  variant="game"
-                  size="sm"
-                  onClick={() => navigate('/create')}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
             ) : (
               <Button
                 variant="game"
@@ -141,45 +119,19 @@ export function NavigationBar() {
                 );
               })}
               <div className="pt-4 border-t border-gray-200/20 space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigate('/join');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  Quick Join
-                </Button>
                 {isHost ? (
-                  <>
-                    <Button
-                      variant="game"
-                      size="sm"
-                      onClick={() => {
-                        navigate('/create');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Create Quiz
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        handleSignOut();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Button>
                 ) : (
                   <Button
                     variant="game"

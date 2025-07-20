@@ -298,4 +298,29 @@ All colors MUST be HSL.
   }
 
   /* Responsive Typography handled in Tailwind config */
+  
+  /* Wizard Step Styles */
+  .wizard-step {
+    @apply bg-white/70 text-gray-800 rounded-lg px-4 py-2 backdrop-blur-md shadow-sm transition-all duration-200;
+  }
+  
+  .wizard-step:hover {
+    @apply bg-white/90 shadow-md;
+  }
+  
+  .wizard-step.active,
+  .wizard-step[data-state="active"] {
+    @apply bg-teal-600 text-white shadow-lg;
+  }
+  
+  /* Responsive wizard steps for small screens */
+  @media (max-width: 360px) {
+    .wizard-container {
+      @apply overflow-x-auto;
+    }
+    
+    .wizard-steps {
+      @apply flex-nowrap min-w-max space-x-2;
+    }
+  }
 }

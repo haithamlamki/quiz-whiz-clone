@@ -17,7 +17,7 @@ import GameResults from "./pages/GameResults";
 import GameLobby from "./pages/GameLobby";
 import HostDashboard from "./pages/HostDashboard";
 import FinalResults from "./pages/FinalResults";
-import DiscoverQuizzes from "./pages/DiscoverQuizzes";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +33,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/discover" element={<DiscoverQuizzes />} />
+              
               
               {/* Protected Host Routes */}
               <Route path="/create" element={
