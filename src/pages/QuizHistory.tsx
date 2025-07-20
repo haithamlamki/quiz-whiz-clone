@@ -205,17 +205,12 @@ export default function QuizHistory() {
 
   const cloneQuiz = async (quizId: string, title: string) => {
     try {
-      // First, fetch the quiz with all its questions
+      // Fetch the complete quiz with all questions and their full data
       const { data: quizData, error: quizError } = await supabase
         .from('quizzes')
         .select(`
           *,
-          questions (
-            id,
-            question_text,
-            options,
-            time_limit
-          )
+          questions (*)
         `)
         .eq('id', quizId)
         .single();
@@ -224,7 +219,7 @@ export default function QuizHistory() {
         throw new Error('Failed to fetch quiz data');
       }
 
-      // Create the cloned quiz
+      // Create the cloned quiz with all available fields
       const { data: newQuiz, error: newQuizError } = await supabase
         .from('quizzes')
         .insert({
@@ -239,13 +234,13 @@ export default function QuizHistory() {
         throw new Error('Failed to create cloned quiz');
       }
 
-      // Clone all questions
+      // Clone all questions with complete data preservation
       if (quizData.questions && quizData.questions.length > 0) {
         const questionsToInsert = quizData.questions.map(question => ({
           quiz_id: newQuiz.id,
           question_text: question.question_text,
-          options: question.options,
-          time_limit: question.time_limit
+          options: question.options, // Preserves all answer options with colors, correct flags, etc.
+          time_limit: question.time_limit || 20 // Default fallback
         }));
 
         const { error: questionsError } = await supabase
@@ -253,15 +248,15 @@ export default function QuizHistory() {
           .insert(questionsToInsert);
 
         if (questionsError) {
-          // If questions failed to insert, clean up the quiz
+          // Cleanup on failure
           await supabase.from('quizzes').delete().eq('id', newQuiz.id);
           throw new Error('Failed to clone questions');
         }
       }
 
       toast({
-        title: "Quiz Cloned!",
-        description: `"${newQuiz.title}" has been created successfully.`,
+        title: "Quiz Cloned Successfully!",
+        description: `"${newQuiz.title}" has been created with ${quizData.questions?.length || 0} questions.`,
       });
 
       // Navigate to edit the cloned quiz
