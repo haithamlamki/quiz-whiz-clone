@@ -71,8 +71,8 @@ export default function GameLobby() {
 
         setLoading(false);
 
-        // Check if game has started
-        if (gameData.status === 'playing') {
+        // Check if game has started - check for both 'starting' and 'playing' status
+        if (gameData.status === 'starting' || gameData.status === 'playing') {
           console.log('🚀 Game already started on load, initiating countdown...');
           setGameStarted(true);
           // Define startCountdown inline to avoid hoisting issues
@@ -143,8 +143,8 @@ export default function GameLobby() {
             setGame(gameData);
           }
           
-          // Check if game started - using 'playing' status to match host
-          if (gameData.status === 'playing' && !gameStarted) {
+          // Check if game started - check for both 'starting' and 'playing' status
+          if ((gameData.status === 'starting' || gameData.status === 'playing') && !gameStarted) {
             console.log('🚀 [GUEST] GAME STARTED DETECTED via polling! Initiating countdown...');
             setGameStarted(true);
             startCountdown();
@@ -180,7 +180,7 @@ export default function GameLobby() {
             const updatedGame = payload.new as Game;
             setGame(updatedGame);
             
-            if (updatedGame.status === 'playing' && !gameStarted) {
+            if ((updatedGame.status === 'starting' || updatedGame.status === 'playing') && !gameStarted) {
               console.log('🚀 [GUEST] GAME STARTED VIA REALTIME! Initiating countdown...');
               setGameStarted(true);
               startCountdown();
@@ -195,8 +195,17 @@ export default function GameLobby() {
       // Listen for broadcast events from host
       broadcastChannel = supabase
         .channel(`game:${pin}`)
+        .on('broadcast', { event: 'countdown' }, (payload) => {
+          console.log('📻 [GUEST] Received countdown broadcast:', payload);
+          if (!gameStarted) {
+            console.log('🚀 [GUEST] COUNTDOWN STARTED VIA BROADCAST! Initiating countdown...');
+            setGameStarted(true);
+            startCountdown();
+            clearInterval(pollInterval);
+          }
+        })
         .on('broadcast', { event: 'game_started' }, (payload) => {
-          console.log('📻 [GUEST] Received broadcast:', payload);
+          console.log('📻 [GUEST] Received game_started broadcast:', payload);
           if (!gameStarted) {
             console.log('🚀 [GUEST] GAME STARTED VIA BROADCAST! Initiating countdown...');
             setGameStarted(true);
