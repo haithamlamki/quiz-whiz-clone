@@ -203,6 +203,80 @@ export default function QuizHistory() {
     link.click();
   };
 
+  const cloneQuiz = async (quizId: string, title: string) => {
+    try {
+      // First, fetch the quiz with all its questions
+      const { data: quizData, error: quizError } = await supabase
+        .from('quizzes')
+        .select(`
+          *,
+          questions (
+            id,
+            question_text,
+            options,
+            time_limit
+          )
+        `)
+        .eq('id', quizId)
+        .single();
+
+      if (quizError || !quizData) {
+        throw new Error('Failed to fetch quiz data');
+      }
+
+      // Create the cloned quiz
+      const { data: newQuiz, error: newQuizError } = await supabase
+        .from('quizzes')
+        .insert({
+          title: `Copy of ${title}`,
+          description: quizData.description,
+          user_id: user?.id || null
+        })
+        .select()
+        .single();
+
+      if (newQuizError || !newQuiz) {
+        throw new Error('Failed to create cloned quiz');
+      }
+
+      // Clone all questions
+      if (quizData.questions && quizData.questions.length > 0) {
+        const questionsToInsert = quizData.questions.map(question => ({
+          quiz_id: newQuiz.id,
+          question_text: question.question_text,
+          options: question.options,
+          time_limit: question.time_limit
+        }));
+
+        const { error: questionsError } = await supabase
+          .from('questions')
+          .insert(questionsToInsert);
+
+        if (questionsError) {
+          // If questions failed to insert, clean up the quiz
+          await supabase.from('quizzes').delete().eq('id', newQuiz.id);
+          throw new Error('Failed to clone questions');
+        }
+      }
+
+      toast({
+        title: "Quiz Cloned!",
+        description: `"${newQuiz.title}" has been created successfully.`,
+      });
+
+      // Navigate to edit the cloned quiz
+      navigate(`/create?edit=${newQuiz.id}`);
+
+    } catch (error) {
+      console.error('Error cloning quiz:', error);
+      toast({
+        title: "Clone Failed",
+        description: "Unable to clone quiz. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{
@@ -422,6 +496,17 @@ export default function QuizHistory() {
                           </PopoverContent>
                         </Popover>
                       )}
+                      
+                      {/* Clone Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => cloneQuiz(quiz.id, quiz.title)}
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        title="Clone quiz"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       
                       {/* Delete Button */}
                       <Button
